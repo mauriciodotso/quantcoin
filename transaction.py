@@ -15,7 +15,6 @@ class Transaction(object):
         if not isinstance(to_wallets, list):
             to_wallets = [to_wallets]
         self._to_wallets = to_wallets
-        self._ammount = ammount
 
     def json(self):
         '''
@@ -24,7 +23,6 @@ class Transaction(object):
         dictionary = {
             'from': self.from_wallet(),
             'to': self.to_wallets(),
-            'ammount': self.ammount()
         }
 
         return json.dumps(dictionary)
