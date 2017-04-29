@@ -11,6 +11,19 @@ class Block:
         self._nounce = nounce
         self._digest = digest
 
+    @staticmethod
+    def from_json(data):
+        transactions = []
+        for transaction in data['transactions']:
+            transaction_object = Transaction(transaction['from_wallet'],
+                                             transaction['to_wallets'])
+            transactions.append(transaction_object)
+
+        block = Block(transactions, binascii.a2b_base64(data['previous']),
+                      binascii.a2b_base64(data['nounce']),
+                      binascii.a2b_base64(data['digest']))
+        return block
+
     def transactions(self):
         return sorted(self._transactions,
                       lambda transaction1, transaction2:

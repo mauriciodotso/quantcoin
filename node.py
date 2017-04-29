@@ -3,6 +3,8 @@ import thread
 import logging
 import json
 import binascii
+import random
+import exceptions
 from block import Block
 from transaction import Transaction
 
@@ -24,12 +26,12 @@ class Node:
             "new_block": self.new_block
         }
 
-    def get_nodes(self):
+    def get_nodes(self, *args, **kwargs):
         logging.debug("Node list requested")
         nodes = self._quantcoin.all_nodes()
         return json.dumps(nodes)
 
-    def get_blocks(self, data):
+    def get_blocks(self, data, *args, **kwargs):
         logging.debug("Blocks requested (ranged: {})".format('range' in data))
         blocks = []
         if 'range' in data:
@@ -40,22 +42,13 @@ class Node:
         blocks = [block.json() for block in blocks]
         return json.dumps(blocks)
 
-    def register(self, data):
+    def register(self, data, *args, **kwargs):
         logging.debug("Node registering(Node: {})".format(data))
         self._quantcoin.store_node((data['address'], data['port']))
 
-    def new_block(self, data):
+    def new_block(self, data, *args, **kwargs):
         logging.debug("New block announced(block: {})".format(data))
-        transactions = []
-        for transaction in data['transactions']:
-            transaction_object = Transaction(transaction['from_wallet'],
-                                             transaction['to_wallets'])
-            transactions.append(transaction_object)
-
-        block = Block(transactions, binascii.a2b_base64(data['previous']),
-                      binascii.a2b_base64(data['nounce']),
-                      binascii.a2b_base64(data['digest']))
-
+        block = Block.from_json(data)
         assert block.previous() == self._quantcoin.last_block().digest()
         assert block.valid()
         logging.debug("Block accepted")
@@ -67,12 +60,12 @@ class Node:
         if data is not None:
             try:
                 data = json.loads(data)
-                response = this._cmds[data['cmd']](data, connection)
+                response = self._cmds[data['cmd']](data, connection)
                 if response is not None:
                     connection.send(response)
-            except Exception as e:
-                logging.debug("An exception occured on connection handle. {}",
-                              e)
+            except exceptions.NameError as e:
+                logging.debug("An exception occured on connection handle. {}".
+                              format(e))
 
     def run(self):
         logging.debug("Node running(ip={}, port={})".
@@ -92,37 +85,42 @@ class Network:
 
     def _send_cmd(self, cmd, receive_function=None):
         cmd_string = json.dumps(cmd)
-        nodes = random.shuffle(self._quantcoin.all_nodes())
-        for node in nodes:
-            s = socket.socket()
-            try:
-                s.connect(node)
-            except Exception:
-                s.close()
-                continue
+        nodes = self._quantcoin.all_nodes()
+        if nodes is not None:
+            nodes = random.sample(nodes, len(nodes))
+            for node in nodes:
+                s = socket.socket()
+                try:
+                    s.connect(node)
+                except Exception:
+                    s.close()
+                    continue
 
-            s.send(cmd_string)
-            if receive_function is not None:
-                data = s.recv(10000)
-                receive_function(data, s)
+                s.send(cmd_string)
+                if receive_function is not None:
+                    data = s.recv(10000)
+                    data = json.loads(data)
+                    receive_function(data, s)
+        else:
+            logging.debug("No nodes registered")
 
     def register(self, ip, port):
-        loggin.debug("Sending register command(ip={}, port={})".
-                     format(ip, port))
+        logging.debug("Sending register command(ip={}, port={})".
+                      format(ip, port))
         cmd = {
             'cmd': 'register',
-            'ip': ip,
+            'address': ip,
             'port': port
         }
 
-        thread.start_new_thread(self._send_cmd, (cmd))
+        thread.start_new_thread(self._send_cmd, (cmd,))
 
     def new_block(self, block):
         logging.debug("Sending new block")
         cmd = block.json()
         cmd['cmd'] = 'new_block'
 
-        thread.start_new_thread(self._send_cmd, (cmd))
+        thread.start_new_thread(self._send_cmd, (cmd,))
 
     def get_nodes(self, nodes_data_handler):
         logging.debug("Asking for nodes")
