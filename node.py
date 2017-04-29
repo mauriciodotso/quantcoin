@@ -10,8 +10,17 @@ from transaction import Transaction
 
 
 class Node:
+    '''
+    A Node in the network communicate with others sharing the public store.
+    Most of the commands handled by a node have to do with the maintenance of
+    a synced public store. Only the send command, that in reallity are ignored
+    by nodes, and new_block that have to do with the blockchain maintenance.
+    '''
 
     def __init__(self, quantcoin, ip="0.0.0.0", port=65345):
+        '''
+        Instantiates a node to handle network requestes.
+        '''
         logging.debug("Creating Node: ip={}, port={}".format(ip, port))
         if quantcoin is None:
             raise Exception("A QuantCoin instance is necessary " +
@@ -28,11 +37,18 @@ class Node:
         }
 
     def get_nodes(self, *args, **kwargs):
+        '''
+        Responds to the command with all peers known by this node.
+        '''
         logging.debug("Node list requested")
         nodes = self._quantcoin.all_nodes()
         return json.dumps(nodes)
 
     def get_blocks(self, data, *args, **kwargs):
+        '''
+        Responds to the command with all blocks, or if a range was requested,
+        with that range.
+        '''
         logging.debug("Blocks requested (ranged: {})".format('range' in data))
         blocks = []
         if 'range' in data:
@@ -44,10 +60,16 @@ class Node:
         return json.dumps(blocks)
 
     def register(self, data, *args, **kwargs):
+        '''
+        Store a peer that is announcing itself in the network.
+        '''
         logging.debug("Node registering(Node: {})".format(data))
         self._quantcoin.store_node((data['address'], data['port']))
 
     def new_block(self, data, *args, **kwargs):
+        '''
+        Verifies and store if valid the new block announced in the network.
+        '''
         logging.debug("New block announced(block: {})".format(data))
         block = Block.from_json(data)
         assert block.previous() == self._quantcoin.last_block().digest()
@@ -56,10 +78,17 @@ class Node:
         self._quantcoin.store_block(block)
 
     def send(self, data, *args, **kwargs):
+        '''
+        Ignores the transaction announcement in the network.
+        '''
         logging.debug("Transaction received({})".format(data['transaction']))
         pass
 
     def handle(self, connection, address):
+        '''
+        Handles a command received from another node calling the proper
+        function.
+        '''
         logging.debug("handling connection(address={})".format(address))
         data = connection.recv(10000)  # FIXME Is this a good size?
         if data is not None:
@@ -73,6 +102,9 @@ class Node:
                               format(e))
 
     def run(self):
+        '''
+        Awaits and handles commands indefinetly.
+        '''
         logging.debug("Node running(ip={}, port={})".
                       format(self._ip, self._port))
         s = socket.socket()
@@ -84,11 +116,29 @@ class Node:
 
 
 class Network:
-
+    '''
+    A Network instance is capable of sending commands to other peers in the
+    network.
+    '''
     def __init__(self, quantcoin):
+        '''
+        Instantiates a Network. A QuantCoin instance is mandatory.
+        '''
+        if quantcoin is None:
+            raise Exception("A Network must have a QuanCoin instance to work.")
         self._quantcoin = quantcoin
 
     def _send_cmd(self, cmd, receive_function=None):
+        '''
+        Sends the command to all peers known in the network. If the peer
+        respond, the data is passed trought the callback receive_function if it
+        was provided.
+
+            cmd: the command to be sent to the network.
+            receive_function: the callback function if data is produced by the
+                execution of the command. This function must be thread safe as
+                it will be called from different threads.
+        '''
         cmd_string = json.dumps(cmd)
         nodes = self._quantcoin.all_nodes()
         if nodes is not None:
@@ -110,6 +160,12 @@ class Network:
             logging.debug("No nodes registered")
 
     def register(self, ip, port):
+        '''
+        Sends a register command to the network.
+
+            ip: IP address of this node.
+            port: The port that this node is operating.
+        '''
         logging.debug("Sending register command(ip={}, port={})".
                       format(ip, port))
         cmd = {
@@ -121,6 +177,11 @@ class Network:
         thread.start_new_thread(self._send_cmd, (cmd,))
 
     def new_block(self, block):
+        '''
+        Sends a new_block command to the network.
+
+            block: The block to be added to the blockchain.
+        '''
         logging.debug("Sending new block")
         cmd = block.json()
         cmd['cmd'] = 'new_block'
@@ -128,6 +189,12 @@ class Network:
         thread.start_new_thread(self._send_cmd, (cmd,))
 
     def get_nodes(self, nodes_data_handler):
+        '''
+        Asks for peers known in the network. The peer data will be retrivied
+        throught the nodes_data_handler callback.
+
+            nodes_data_handler: The callback used to receive the node data.
+        '''
         logging.debug("Asking for nodes")
         cmd = {
             'cmd': 'get_nodes'
@@ -136,6 +203,13 @@ class Network:
         thread.start_new_thread(self._send_cmd, (cmd, nodes_data_handler))
 
     def get_blocks(self, blocks_data_handler):
+        '''
+        Asks for the full blockchain. The blockchain will be received trought
+        the blocks_data_handler callback.
+
+            blocks_data_handler: The callback used to receive the full
+                blockchain.
+        '''
         logging.debug("Asking for all blocks")
         cmd = {
             'cmd': 'get_blocks'
@@ -144,6 +218,13 @@ class Network:
         thread.start_new_thread(self._send_cmd, (cmd, blocks_data_handler))
 
     def get_range_blocks(self, start, end, blocks_data_handler):
+        '''
+        Asks for a slice of the blockchain. The slice will be received trought
+        the blocks_data_handler callback.
+
+            blocks_data_handler: The callback used to receive the slice of the
+                blockchain.
+        '''
         logging.debug("Asking for a range of blocks(start={}, end={})".
                       format(start, end))
         cmd = {
@@ -154,6 +235,9 @@ class Network:
         thread.start_new_thread(self._send_cmd, (cmd, blocks_data_handler))
 
     def send(self, transaction):
+        '''
+        Anounces to the network a transaction.
+        '''
         logging.debug("Sending: {}".format(transaction))
         cmd = {
             'cmd': 'send',

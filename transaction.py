@@ -2,6 +2,19 @@ import json
 
 
 class Transaction(object):
+    '''
+    A Transaction represents the movimentation of the coins in the network.
+    Only one sender is allowed by transaction, but as many as needed receivers
+    are allowed. A transaction is only valid if the ammount sent cant be
+    verified to be owned by the sender. This process is made by the miners when
+    building new blocks and the rest of the network when accepting a new block.
+
+    An special kind of transaction has no sender. This transaction represents
+    the coin creation. This transaction can only be made by a miner when
+    creating a new block. The ammount of coins allowed in this kind of
+    transaction is limited by the nodes in the network when accepting a new
+    block.
+    '''
 
     def __init__(self, from_wallet, to_wallets, signature=None):
         '''

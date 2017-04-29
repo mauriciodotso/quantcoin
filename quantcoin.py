@@ -11,13 +11,28 @@ from Crypto import Random
 
 
 class QuantCoin:
+    '''
+    QuantCoin is the main facade to the quantcoin node internal storage. All
+    peers, blockchain are stored in a public databased, that is shared by the
+    nodes in the network. The wallets are stored in a private database
+    protected by a password only accessible by this node.
+    '''
 
     def __init__(self):
+        '''
+        Instantiates a QuantCoin storage.
+        '''
         self._blocks = []
         self._peers = []
         self._wallets = []
 
     def load(self, database):
+        '''
+        Loads the public store from a file. The file is a JSON that represents
+        the public storage of the network.
+
+            database: path to the public storage JSON file.
+        '''
         logging.debug("Loading from database")
         if os.path.exists(database):
             with open(database, 'rb') as fp:
@@ -31,6 +46,12 @@ class QuantCoin:
             return False
 
     def save(self, database):
+        '''
+        Saves the public store to a file. The file will be saved in JSON
+        format.
+
+            database: path to the file.
+        '''
         logging.debug("Saving to database")
         with open(database, 'wb') as fp:
             json_blocks = [block.json() for block in self._blocks]
@@ -41,6 +62,15 @@ class QuantCoin:
             json.dump(storage, fp)
 
     def load_private(self, database, password):
+        '''
+        Loads the private storage from a file. The file is in JSON format,
+        protected by a password trought AES-256 encryption.
+
+            database: path to the private storage.
+            password: passoword to open the storage.
+
+            returns: True if storage loaded correctly, False otherwise.
+        '''
         logging.debug("Loading from private database")
         if os.path.exists(database):
             with open(database, 'rb') as fp:
@@ -51,15 +81,24 @@ class QuantCoin:
                 storage_json = self.__unpad(aes.decrypt(fp.read()))
                 try:
                     self._wallets = json.loads(storage_json)['wallets']
+                    return True
                 except Exception:
                     print("Your password is problably wrong!")
-                    exit()
+                    return False
         else:
             logging.debug("Requested private database " +
                           "does not exists(database={})".format(database))
             return False
 
     def save_private(self, database, password):
+        '''
+        Encripts the private store with AES-256 using the password for the
+        key generation.
+
+            database: the path to the file where the private store will be
+                saved.
+            password: the password used to generate the AES-256 key.
+        '''
         logging.debug("Saving to private database")
         with open(database, 'wb') as fp:
             storage = {
@@ -74,41 +113,79 @@ class QuantCoin:
             fp.write(encrypted_storage)
 
     def __pad(self, m):
+        '''
+        Pads the message so it can be encrypted by AES-256.
+        '''
         return m + (16 - len(m) % 16) * chr(16 - len(m) % 16)
 
     def __unpad(self, m):
+        '''
+        Remove the pad of a decrypted message.
+        '''
         return m[0:-ord(m[-1])]
 
     def all_nodes(self):
+        '''
+        Obtains all peers known by this node.
+        '''
         logging.debug("All nodes requested")
         return self._peers
 
     def blocks(self):
+        '''
+        Obtains the blockchain.
+        '''
         logging.debug("All blocks requested")
         return self._blocks
 
     def block(self, start, end):
+        '''
+        Obtains part of the blockchain.
+
+            start: the start point of blocks requested.
+            end: the index of the last block requested.
+
+        returns: a slice of the blockchain
+        '''
         logging.debug("Block range requested(from={},to={})".
                       format(start, end))
         return self._blocks[start:end]
 
     def wallets(self):
+        '''
+        Obtains the wallets of this node.
+        '''
         return self._wallets
 
     def store_wallet(self, wallet):
+        '''
+        Adds a new wallet to this node.
+        '''
         if wallet not in self._wallets:
             self._wallets.append(wallet)
 
     def store_block(self, block):
+        '''
+        Store a new block in this node.
+        '''
         if block not in self._blocks:
             self._blocks.append(block)
 
     def store_node(self, node):
+        '''
+        Register a new peer.
+        '''
         if node not in self._peers:
             self._peers.append(node)
 
     @staticmethod
     def create_wallet(seed=None):
+        '''
+        Generate a new wallet. The wallet uses a key pair and an address
+        based on the SHA1 of the generated wallet's public key. The keys
+        generated use the ECDSA key generation algorithm with the curve
+        SECP256k1, the same as bitcoin.
+        '''
         from ecdsa import SigningKey, SECP256k1
         from ecdsa.util import randrange_from_seed__trytryagain
         logging.debug("Creating wallet(seed={})".format(seed))
