@@ -5,6 +5,9 @@ import json
 from block import Block
 import os
 import binascii
+import hashlib
+from Crypto.Cipher import AES
+from Crypto import Random
 
 
 class QuantCoin:
@@ -22,10 +25,6 @@ class QuantCoin:
                 blocks = storage['blocks']
                 self._blocks = [Block.from_json(block) for block in blocks]
                 self._peers = [tuple(peer) for peer in storage['peers']]
-                self._wallets = [tuple(wallet)
-                                 for wallet in storage['wallets']]
-
-                print(self._peers)
         else:
             logging.debug("Requested database does not exists(database={})".
                           format(database))
@@ -38,9 +37,47 @@ class QuantCoin:
             storage = {
                 'blocks': json_blocks,
                 'peers': self._peers,
-                'wallets': self._wallets
                 }
             json.dump(storage, fp)
+
+    def load_private(self, database, password):
+        logging.debug("Loading from private database")
+        if os.path.exists(database):
+            with open(database, 'rb') as fp:
+                with open(database + '.iv') as fpiv:
+                    iv = fpiv.read()
+                aes = AES.new(hashlib.sha256(password).digest(),
+                              AES.MODE_CBC, iv)
+                storage_json = self.__unpad(aes.decrypt(fp.read()))
+                try:
+                    self._wallets = json.loads(storage_json)['wallets']
+                except Exception:
+                    print("Your password is problably wrong!")
+                    exit()
+        else:
+            logging.debug("Requested private database " +
+                          "does not exists(database={})".format(database))
+            return False
+
+    def save_private(self, database, password):
+        logging.debug("Saving to private database")
+        with open(database, 'wb') as fp:
+            storage = {
+                'wallets': self._wallets
+            }
+            storage_json = json.dumps(storage)
+            iv = Random.new().read(AES.block_size)
+            with open(database + ".iv", 'wb') as fpiv:
+                fpiv.write(iv)
+            aes = AES.new(hashlib.sha256(password).digest(), AES.MODE_CBC, iv)
+            encrypted_storage = aes.encrypt(self.__pad(storage_json))
+            fp.write(encrypted_storage)
+
+    def __pad(self, m):
+        return m + (16 - len(m) % 16) * chr(16 - len(m) % 16)
+
+    def __unpad(self, m):
+        return m[0:-ord(m[-1])]
 
     def all_nodes(self):
         logging.debug("All nodes requested")
@@ -73,18 +110,22 @@ class QuantCoin:
     @staticmethod
     def create_wallet(seed=None):
         from ecdsa import SigningKey, SECP256k1
+        from ecdsa.util import randrange_from_seed__trytryagain
         logging.debug("Creating wallet(seed={})".format(seed))
         if seed is None:
             seed = ''.join([random.SystemRandom().
                             choice(string.ascii_letters + string.digits)
                             for _ in range(50)])
-
-        # TODO How to use seed?
-        private_key = SigningKey.generate(curve=SECP256k1)
+        seed = int(hashlib.sha256(seed).hexdigest(), 16)
+        secret_exponent = randrange_from_seed__trytryagain(seed,
+                                                           SECP256k1.order)
+        private_key = SigningKey.from_secret_exponent(secret_exponent,
+                                                      curve=SECP256k1)
         public_key = private_key.get_verifying_key()
-
+        address = 'QC' + hashlib.sha1(public_key.to_string()).hexdigest()
         wallet = {
-            'private_key': binascii.b2a_base64(private_key.to_der()),
-            'public_key': binascii.b2a_base64(public_key.to_der())
+            'private_key': binascii.b2a_base64(private_key.to_string()),
+            'public_key': binascii.b2a_base64(public_key.to_string()),
+            'address': address
         }
         return wallet

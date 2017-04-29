@@ -99,4 +99,4 @@ ENV/
 0
 
 #specific to this project
-default.qc
+default.qc*

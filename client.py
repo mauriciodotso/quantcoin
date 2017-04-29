@@ -4,10 +4,14 @@ import getopt
 import thread
 import threading
 import time
+import hashlib
+import binascii
 from cmd import Cmd
 from node import Node, Network
 from quantcoin import QuantCoin
 from block import Block
+from transaction import Transaction
+from ecdsa import SigningKey, SECP256k1
 
 
 class Client(Cmd):
@@ -50,7 +54,10 @@ class Client(Cmd):
             time.sleep(10)
 
     def do_create_wallet(self, line):
-        wallet = QuantCoin.create_wallet()
+        line = line.strip()
+        if line == '':
+            line = None
+        wallet = QuantCoin.create_wallet(line)
         self._quantcoin.store_wallet(wallet)
         print(wallet)
 
@@ -60,6 +67,8 @@ class Client(Cmd):
     def do_exit(self, line):
         print("Bye!")
         self._quantcoin.save(self._quantcoin.database)
+        self._quantcoin.save_private(self._quantcoin.private_database,
+                                     self._quantcoin.password)
         return True
 
     def do_peers(self, line):
@@ -86,6 +95,37 @@ class Client(Cmd):
         if line in ("b", "blocks"):
             self._network.get_blocks(self._blocks_data_handler)
 
+    def do_send(self, line):
+        params = line.strip().split()
+        if len(params) < 3:
+            print("Missing parameters")
+            return False
+        if len(params[2:]) % 2 != 0:
+            print("Parameters syntax wrong")
+            return False
+
+        transaction_base_args, params = params[:2], params[2:]
+        my_address, commission = transaction_base_args
+        to_wallets = [(None, commission)]
+        while len(params) > 0:
+            address, amount = params[:2]
+            params = params[2:]
+            to_wallets.append((address, amount))
+
+        transaction = Transaction(my_address, to_wallets)
+        to_sign = transaction.prepare_for_signature()
+        for wallet in self._quantcoin.wallets():
+            if wallet['address'] == my_address:
+                using_wallet = wallet
+                break
+
+        priv_key = SigningKey.from_string(binascii.a2b_base64(
+                                          wallet['private_key']),
+                                          curve=SECP256k1)
+        signature = priv_key.sign(to_sign, hashfunc=hashlib.sha256)
+        transaction.signed(binascii.b2a_base64(signature))
+        self._network.send(transaction.json())
+
 
 def print_help():
     print("client.py")
@@ -111,6 +151,7 @@ if __name__ == "__main__":
     port = 65345
     debug = False
     database = 'default.qc'
+    private_database = 'default.qc-priv'
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print_help()
@@ -140,9 +181,14 @@ if __name__ == "__main__":
                     "[%(levelname)s] %(asctime)s: %(message)s")
         channel.setFormatter(formatter)
         root.addHandler(channel)
+
     quantcoin = QuantCoin()
     quantcoin.load(database)
     quantcoin.database = database
+    password = raw_input("Password: ")
+    quantcoin.load_private(private_database, password)
+    quantcoin.private_database = private_database
+    quantcoin.password = password
 
     client = Client(quantcoin, ip, port)
     client.cmdloop()

@@ -23,7 +23,8 @@ class Node:
             "get_nodes": self.get_nodes,
             "get_blocks": self.get_blocks,
             "register": self.register,
-            "new_block": self.new_block
+            "new_block": self.new_block,
+            "send": self.send
         }
 
     def get_nodes(self, *args, **kwargs):
@@ -53,6 +54,10 @@ class Node:
         assert block.valid()
         logging.debug("Block accepted")
         self._quantcoin.store_block(block)
+
+    def send(self, data, *args, **kwargs):
+        logging.debug("Transaction received({})".format(data['transaction']))
+        pass
 
     def handle(self, connection, address):
         logging.debug("handling connection(address={})".format(address))
@@ -147,3 +152,12 @@ class Network:
         }
 
         thread.start_new_thread(self._send_cmd, (cmd, blocks_data_handler))
+
+    def send(self, transaction):
+        logging.debug("Sending: {}".format(transaction))
+        cmd = {
+            'cmd': 'send',
+            'transaction': transaction
+        }
+
+        thread.start_new_thread(self._send_cmd, (cmd,))
