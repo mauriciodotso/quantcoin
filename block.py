@@ -52,12 +52,14 @@ class Block:
     def digest(self):
         return self._digest
 
-    def valid_block(self):
+    def valid(self):
         if self._nounce is not None:
             transactions_digest = self.transactions_digest()
             calculated_digest = hashlib.sha256(transactions_digest +
                                                str(self._nounce)).digest()
             return calculated_digest == self._digest
+        else:
+            return False
 
     def json(self):
         if self.nounce() is not None:
