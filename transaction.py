@@ -5,7 +5,7 @@ class Transaction(object):
 
     def __init__(self, from_wallet, to_wallets, signature=None):
         '''
-        Creates a transaction between two of more wallets.
+        Creates a transaction between two or more wallets.
 
         from_wallet -- the address of the sender of the money
         to_wallets -- the tuples with addresses of the receivers and ammounts

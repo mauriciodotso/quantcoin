@@ -5,7 +5,17 @@ import binascii
 
 class Block:
 
-    def __init__(self, transactions, previous_block, nounce=None, digest=None):
+    def __init__(self, author, transactions, previous_block, nounce=None,
+                 digest=None):
+        if author is None:
+            raise Exception("A block must have an author.")
+        if transactions is None:
+            raise Exception("A block should contain at least one transaction.")
+        if previous_block is None:
+            raise Exception("A block must contain a reference to a " +
+                            "previous one.")
+
+        self._author = author
         self._transactions = transactions
         self._previous_block = previous_block
         self._nounce = nounce
@@ -21,7 +31,8 @@ class Block:
                                              transaction['signature'])
             transactions.append(transaction_object)
 
-        block = Block(transactions, binascii.a2b_base64(data['previous']),
+        block = Block(data['author'], transactions,
+                      binascii.a2b_base64(data['previous']),
                       binascii.a2b_base64(data['nounce']),
                       binascii.a2b_base64(data['digest']))
         return block
@@ -69,7 +80,6 @@ class Block:
 
     def valid(self):
         if self._nounce is not None:
-            # TODO validate the transactions as well?
             transactions_digest = self.transactions_digest()
             calculated_digest = hashlib.sha256(transactions_digest +
                                                str(self._nounce)).digest()
@@ -77,11 +87,15 @@ class Block:
         else:
             return False
 
+    def author(self):
+        return self._author
+
     def json(self):
         if self.nounce() is not None:
             previous = binascii.b2a_base64(self.previous()) \
                             if self.previous() is not None else None
             dictionary = {
+                'author': self.author(),
                 'nounce': binascii.b2a_base64(bytes([self.nounce()])),
                 'digest': binascii.b2a_base64(self.digest()),
                 'previous': previous,
