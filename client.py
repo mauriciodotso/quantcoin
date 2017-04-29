@@ -51,7 +51,11 @@ class Client(Cmd):
 
     def do_create_wallet(self, line):
         wallet = QuantCoin.create_wallet()
+        self._quantcoin.store_wallet(wallet)
         print(wallet)
+
+    def do_wallets(self, line):
+        print(self._quantcoin.wallets())
 
     def do_exit(self, line):
         print("Bye!")

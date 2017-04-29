@@ -4,6 +4,7 @@ import random
 import json
 from block import Block
 import os
+import binascii
 
 
 class QuantCoin:
@@ -71,11 +72,19 @@ class QuantCoin:
 
     @staticmethod
     def create_wallet(seed=None):
+        from ecdsa import SigningKey, SECP256k1
         logging.debug("Creating wallet(seed={})".format(seed))
         if seed is None:
             seed = ''.join([random.SystemRandom().
                             choice(string.ascii_letters + string.digits)
                             for _ in range(50)])
 
-        # TODO generate ecdsa keys
-        return seed
+        # TODO How to use seed?
+        private_key = SigningKey.generate(curve=SECP256k1)
+        public_key = private_key.get_verifying_key()
+
+        wallet = {
+            'private_key': binascii.b2a_base64(private_key.to_der()),
+            'public_key': binascii.b2a_base64(public_key.to_der())
+        }
+        return wallet

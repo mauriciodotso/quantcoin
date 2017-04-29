@@ -15,8 +15,10 @@ class Block:
     def from_json(data):
         transactions = []
         for transaction in data['transactions']:
-            transaction_object = Transaction(transaction['from_wallet'],
-                                             transaction['to_wallets'])
+            transaction_object = Transaction(transaction['body']
+                                                        ['from_wallet'],
+                                             transaction['body']['to_wallets'],
+                                             transaction['signature'])
             transactions.append(transaction_object)
 
         block = Block(transactions, binascii.a2b_base64(data['previous']),
@@ -67,6 +69,7 @@ class Block:
 
     def valid(self):
         if self._nounce is not None:
+            # TODO validate the transactions as well?
             transactions_digest = self.transactions_digest()
             calculated_digest = hashlib.sha256(transactions_digest +
                                                str(self._nounce)).digest()
@@ -86,27 +89,3 @@ class Block:
             }
 
             return json.dumps(dictionary)
-
-
-if __name__ == "__main__":
-    from transaction import Transaction
-    import random
-    import string
-    previous_block = None
-    for _ in range(100):
-        from_address = ''.join([random.choice(string.ascii_letters +
-                               string.digits) for _ in range(50)])
-        to_address = ''.join([random.choice(string.ascii_letters +
-                             string.digits) for _ in range(50)])
-        transaction1 = Transaction(from_address,
-                                   (to_address, random.choice(range(100))))
-        from_address = ''.join([random.choice(string.ascii_letters +
-                               string.digits) for _ in range(50)])
-        to_address = ''.join([random.choice(string.ascii_letters +
-                             string.digits) for _ in range(50)])
-        transaction2 = Transaction(from_address,
-                                   (to_address, random.choice(range(100))))
-        block = Block([transaction1, transaction2], previous_block)
-        block.proof_of_work(2)  # 1 byte of difficulty
-        print(block.json())
-        previous_block = block.digest()

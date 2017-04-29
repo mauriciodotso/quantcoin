@@ -3,26 +3,32 @@ import json
 
 class Transaction(object):
 
-    def __init__(self, from_wallet, to_wallets):
+    def __init__(self, from_wallet, to_wallets, signature=None):
         '''
         Creates a transaction between two of more wallets.
 
         from_wallet -- the address of the sender of the money
         to_wallets -- the tuples with addresses of the receivers and ammounts
-            received
+            received. There is a special to_wallet tuple with a None wallet
+            address, this case is the commission to the miner. The commission
+            is optional.
         '''
         self._from_wallet = from_wallet
         if not isinstance(to_wallets, list):
             to_wallets = [to_wallets]
         self._to_wallets = to_wallets
+        self._signature = signature
 
     def json(self):
         '''
         Converts the object to a json
         '''
         dictionary = {
-            'from': self.from_wallet(),
-            'to': self.to_wallets(),
+            'body': {
+                'from': self.from_wallet(),
+                'to': self.to_wallets(),
+            },
+            'signature': self.signature()
         }
 
         return json.dumps(dictionary)
@@ -57,3 +63,27 @@ class Transaction(object):
             total_ammount += ammount
 
         return total_ammount
+
+    def prepare_for_signature(self):
+        '''
+        Obtains only the data of the transaction that should be signed.
+        '''
+        data = {
+            'from': self.from_wallet(),
+            'to': self.to_wallets(),
+        }
+
+        return json.dumps(data)
+
+    def signed(self, signature):
+        '''
+        Stores the signature into the transaction. After this the transaction
+        is ready for inclusion in the blockchain.
+        '''
+        self._signature = signature
+
+    def signature(self):
+        '''
+        Obtains the signature of this transaction
+        '''
+        return self._signature
