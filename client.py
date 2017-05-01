@@ -199,6 +199,10 @@ class Client(Cmd):
             to_wallets.append((address, amount))
 
         transaction = Transaction(my_address, to_wallets)
+
+        assert transaction.ammount_spent() <= \
+            self._quantcoin.ammount_owned(my_address)
+
         to_sign = transaction.prepare_for_signature()
         using_wallet = None
         for wallet in self._quantcoin.wallets():
@@ -217,6 +221,10 @@ class Client(Cmd):
         signature = priv_key.sign(to_sign, hashfunc=hashlib.sha256)
         transaction.signed(binascii.b2a_base64(signature))
         self._network.send(transaction.json())
+
+    def do_owned(self, line):
+        address = line.strip()
+        print(self._quantcoin.ammount_owned(address))
 
 
 def print_help():

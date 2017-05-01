@@ -206,3 +206,24 @@ class QuantCoin:
             'address': address
         }
         return wallet
+
+    def ammount_owned(self, wallet):
+        '''
+        Calculates the ammount owned by a wallet. This function is O(n^3) so
+        call this with caution.
+        '''
+        ammount_owned = 0.0
+        for block in self.blocks():
+            for transaction in block.transactions():
+                if wallet == transaction.from_wallet():
+                    ammount_owned = ammount_owned - transaction.ammount_spent()
+                else:
+                    for transaction_wallet, ammount in \
+                            transaction.to_wallets():
+                        # There are no restriction as to what one can send
+                        # money to a wallet in different ammounts all in the
+                        # same transaction
+                        if transaction_wallet == wallet:
+                            ammount_owned = ammount_owned + ammount
+
+        return ammount_owned
