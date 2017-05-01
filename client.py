@@ -6,6 +6,7 @@ import threading
 import time
 import hashlib
 import binascii
+import getpass
 from cmd import Cmd
 from node import Node, Network
 from quantcoin import QuantCoin
@@ -66,6 +67,34 @@ class Client(Cmd):
         \t\tCreates a new wallet and saves in the client internal storage. The
         \t\tparameter seed is optional. It's useful for brainwallets if you
         \t\twant that.
+
+        \twallets:
+        \t\tShows all wallets in the private database. All information about
+        \t\twallets will be shown, so be careful as this can expose your keys.
+
+        \texit:
+        \t\tTerminates the client and save everything to the defined wallets.
+
+        \tpeers:
+        \t\tShows all peers known at the moment.
+
+        \tblocks:
+        \t\tShow the blockchain.
+
+        \tupdate <parameter>
+        \t\tAsks the client for a manual update. The parameters allowed are
+        \t\tp(eers) and b(locks). "peers" parameter updates the peers asking
+        \t\tother nodes  in the network for it's know peers. "blocks" updates
+        \t\tthe blockchain.
+
+        \tsend <my_address> <commission> (<to_address> <ammount>)+
+        \t\tAnounces a transference to the network so miners include it in the
+        \t\tblockchain. <my_address> identifies what wallet should be used to
+        \t\tsign to the transactino. <commission> tells miners what ammount is
+        \t\toffered to who includes this transaction in the blockchain. The
+        \t\tpair <to_address> <ammount> can be repeated indefinetly.
+        \t\t<to_address> identifies the wallet that will receive the money and
+        \t\tammount is the value sent.
         """)
 
     def _update_job(self, ip, port):
@@ -197,8 +226,16 @@ def print_help():
     print("client.py")
     print("\tLaunch the client of the quantcoin network.")
     print("\tOptions:")
-    print("\t\t-h(--help)\tShows this help message")
-    print("\t\t-m(--mine)\tLaunch the client only for mining")
+    print("\t\t-h(--help)\t\t\tShows this help message")
+    print("\t\t-i(--ip) <value>\t\tDefines the ip or address that this " +
+          "client will use to register in the network.")
+    print("\t\t-p(--port) <value>\t\tDefines the port that the client is " +
+          "going to user")
+    print("\t\t-d(--debug)\t\t\tTurn on debugging messages")
+    print("\t\t-s(--storage) <value>\t\tDefines the path to the public " +
+          "storage")
+    print("\t\t-x(--private_storage) <value>\tDefines the path to the " +
+          "private storage")
 
 
 if __name__ == "__main__":
@@ -207,8 +244,9 @@ if __name__ == "__main__":
     try:
         application_args = sys.argv[1:]
         opts, _ = getopt.getopt(application_args,
-                                "hmi:p:ds:", ["help", "mine", "ip:", "port:",
-                                              "debug", "storage:"])
+                                "hi:p:ds:x:", ["help", "ip:", "port:",
+                                               "debug", "storage:",
+                                               "private_storage:"])
     except getopt.GetoptError:
         print_help()
         exit()
@@ -234,6 +272,8 @@ if __name__ == "__main__":
             debug = True
         elif opt in ('-s', '--storage'):
             database = arg
+        elif opt in ('-x', '--private_storage'):
+            private_database = arg
 
     if debug:
         import logging
@@ -251,7 +291,7 @@ if __name__ == "__main__":
     quantcoin = QuantCoin()
     quantcoin.load(database)
     quantcoin.database = database
-    password = raw_input("Password: ")
+    password = getpass.getpass("Password for private storage: ")
     quantcoin.load_private(private_database, password)
     quantcoin.private_database = private_database
     quantcoin.password = password

@@ -74,6 +74,7 @@ class Node:
         block = Block.from_json(data)
         assert block.previous() == self._quantcoin.last_block().digest()
         assert block.valid()
+        # TODO Validate block transactions
         logging.debug("Block accepted")
         self._quantcoin.store_block(block)
 
