@@ -33,7 +33,8 @@ class Node:
             "get_blocks": self.get_blocks,
             "register": self.register,
             "new_block": self.new_block,
-            "send": self.send
+            "send": self.send,
+            "register_wallet": self.register_wallet
         }
 
     def get_nodes(self, *args, **kwargs):
@@ -65,6 +66,13 @@ class Node:
         '''
         logging.debug("Node registering(Node: {})".format(data))
         self._quantcoin.store_node((data['address'], data['port']))
+
+    def register_wallet(self, data, *args, **kwargs):
+        '''
+        Store the wallet announced in the network.
+        '''
+        logging.debug("Wallet registering(Wallet: {})".format(data))
+        self._quantcoin.store_public_wallet(data['public_key'])
 
     def new_block(self, data, *args, **kwargs):
         '''
@@ -173,6 +181,22 @@ class Network:
             'cmd': 'register',
             'address': ip,
             'port': port
+        }
+
+        thread.start_new_thread(self._send_cmd, (cmd,))
+
+    def register_wallet(self, public_key):
+        '''
+        Register a new wallet in the network.
+
+            public_key: the public key of the wallet.
+        '''
+        logging.debug("Sending register_wallet command(public_key={})"
+                      .format(public_key))
+
+        cmd = {
+            'cmd': 'register_wallet',
+            'public_key': public_key
         }
 
         thread.start_new_thread(self._send_cmd, (cmd,))

@@ -23,7 +23,8 @@ class QuantCoin:
         Instantiates a QuantCoin storage.
         '''
         self._blocks = []
-        self._peers = []
+        self._peers = [("127.0.0.1", 65345)]
+        self._public_wallets = []
         self._wallets = []
 
     def load(self, database):
@@ -40,6 +41,9 @@ class QuantCoin:
                 blocks = storage['blocks']
                 self._blocks = [Block.from_json(block) for block in blocks]
                 self._peers = [tuple(peer) for peer in storage['peers']]
+                self._public_wallets = [tuple(public_wallet)
+                                        for public_wallet
+                                        in storage['public_wallets']]
         else:
             logging.debug("Requested database does not exists(database={})".
                           format(database))
@@ -58,6 +62,7 @@ class QuantCoin:
             storage = {
                 'blocks': json_blocks,
                 'peers': self._peers,
+                'public_wallets': self._public_wallets
                 }
             json.dump(storage, fp)
 
@@ -157,12 +162,28 @@ class QuantCoin:
         '''
         return self._wallets
 
+    def public_wallets(self):
+        '''
+        Obtains the public keys for wallets.
+        '''
+        return self._public_wallets
+
     def store_wallet(self, wallet):
         '''
         Adds a new wallet to this node.
         '''
         if wallet not in self._wallets:
             self._wallets.append(wallet)
+
+    def store_public_wallet(self, public_key):
+        '''
+        Stores the new wallet registered in the network.
+        '''
+        public_key_string = binascii.a2b_base64(public_key)
+        address = "QC" + hashlib.sha1(public_key_string).hexdigest()
+        public_wallet = (address, public_key)
+        if public_wallet not in self._public_wallets:
+            self._public_wallets.append(public_wallet)
 
     def store_block(self, block):
         '''

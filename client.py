@@ -107,6 +107,8 @@ class Client(Cmd):
         '''
         while True:
             self._network.register(ip, port)
+            for wallet in self._quantcoin.wallets():
+                self._network.register_wallet(wallet['public_key'])
             self.do_update("peers")
             self.do_update("blocks")
             time.sleep(10)
@@ -226,6 +228,9 @@ class Client(Cmd):
         address = line.strip()
         print(self._quantcoin.ammount_owned(address))
 
+    def do_known_wallets(self, line):
+        print(self._quantcoin.public_wallets())
+
 
 def print_help():
     '''
@@ -259,7 +264,7 @@ if __name__ == "__main__":
         print_help()
         exit()
 
-    ip = "0.0.0.0"
+    ip = "127.0.0.1"
     port = 65345
     debug = False
     database = 'default.qc'
