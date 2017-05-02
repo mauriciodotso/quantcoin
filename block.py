@@ -93,6 +93,9 @@ class Block:
         for transaction in ordered_transactions:
             queue.append(hashlib.sha256(transaction.json()))
 
+        if len(queue) % 2 == 1:  # we have and odd number of transactions
+            queue.append("")     # append and empty string
+
         while len(queue) > 1:
             pair, queue = queue[:2], queue[2:]
             pair_hash = hashlib.sha256(pair[0].digest() + pair[1].digest())

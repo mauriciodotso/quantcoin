@@ -8,6 +8,8 @@ import binascii
 import hashlib
 from Crypto.Cipher import AES
 from Crypto import Random
+from ecdsa import SigningKey, SECP256k1
+from ecdsa.util import randrange_from_seed__trytryagain
 
 
 class QuantCoin:
@@ -97,7 +99,7 @@ class QuantCoin:
 
     def save_private(self, database, password):
         '''
-        Encripts the private store with AES-256 using the password for the
+        Encrypts the private store with AES-256 using the password for the
         key generation.
 
             database: the path to the file where the private store will be
@@ -207,8 +209,6 @@ class QuantCoin:
         generated use the ECDSA key generation algorithm with the curve
         SECP256k1, the same as bitcoin.
         '''
-        from ecdsa import SigningKey, SECP256k1
-        from ecdsa.util import randrange_from_seed__trytryagain
         logging.debug("Creating wallet(seed={})".format(seed))
         if seed is None:
             seed = ''.join([random.SystemRandom().
