@@ -10,6 +10,7 @@ from Crypto.Cipher import AES
 from Crypto import Random
 from ecdsa import SigningKey, SECP256k1
 from ecdsa.util import randrange_from_seed__trytryagain
+import scrypt
 
 
 class QuantCoin:
@@ -81,10 +82,10 @@ class QuantCoin:
         logging.debug("Loading from private database")
         if os.path.exists(database):
             with open(database, 'rb') as fp:
-                with open(database + '.iv') as fpiv:
-                    iv = fpiv.read()
-                aes = AES.new(hashlib.sha256(password).digest(),
-                              AES.MODE_CBC, iv)
+                salt = fp.read(4)
+                iv = fp.read(AES.block_size)
+                key = scrypt.hash(password, salt, buflen=32)
+                aes = AES.new(key, AES.MODE_CBC, iv)
                 storage_json = self.__unpad(aes.decrypt(fp.read()))
                 try:
                     self._wallets = json.loads(storage_json)['wallets']
@@ -112,10 +113,14 @@ class QuantCoin:
                 'wallets': self._wallets
             }
             storage_json = json.dumps(storage)
+            salt = Random.new().read(4)
             iv = Random.new().read(AES.block_size)
-            with open(database + ".iv", 'wb') as fpiv:
-                fpiv.write(iv)
-            aes = AES.new(hashlib.sha256(password).digest(), AES.MODE_CBC, iv)
+
+            fp.write(salt)
+            fp.write(iv)
+
+            key = scrypt.hash(password, salt, buflen=32)
+            aes = AES.new(key, AES.MODE_CBC, iv)
             encrypted_storage = aes.encrypt(self.__pad(storage_json))
             fp.write(encrypted_storage)
 
