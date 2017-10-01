@@ -7,6 +7,7 @@ import random
 import exceptions
 from block import Block
 from transaction import Transaction
+from ecdsa import SECP256k1, VerifyingKey
 
 
 class Node:
@@ -19,7 +20,7 @@ class Node:
 
     def __init__(self, quantcoin, ip="0.0.0.0", port=65345):
         '''
-        Instantiates a node to handle network requestes.
+        Instantiates a node to handle network requests.
         '''
         logging.debug("Creating Node: ip={}, port={}".format(ip, port))
         if quantcoin is None:
@@ -33,8 +34,7 @@ class Node:
             "get_blocks": self.get_blocks,
             "register": self.register,
             "new_block": self.new_block,
-            "send": self.send,
-            "register_wallet": self.register_wallet
+            "send": self.send
         }
 
     def get_nodes(self, *args, **kwargs):
@@ -67,13 +67,6 @@ class Node:
         logging.debug("Node registering(Node: {})".format(data))
         self._quantcoin.store_node((data['address'], data['port']))
 
-    def register_wallet(self, data, *args, **kwargs):
-        '''
-        Store the wallet announced in the network.
-        '''
-        logging.debug("Wallet registering(Wallet: {})".format(data))
-        self._quantcoin.store_public_wallet(data['public_key'])
-
     def new_block(self, data, *args, **kwargs):
         '''
         Verifies and store if valid the new block announced in the network.
@@ -82,7 +75,31 @@ class Node:
         block = Block.from_json(data)
         assert block.previous() == self._quantcoin.last_block().digest()
         assert block.valid()
-        # TODO Validate block transactions
+
+        for transaction in block.transactions():
+            # If the transaction is the creation transaction we do not validate
+            if transaction.from_wallet() is not None:
+                assert transaction.ammount_spent() <= \
+                    self._quantcoin.ammount_owned(transaction.from_wallet())
+
+                # An address cannot send money to itself
+                for to_address, _ in transaction.to_wallets():
+                    assert to_address != transaction.from_wallet()
+
+                transaction_public_key = None
+                for address, public_key in self._quantcoin.public_wallets():
+                    if address == transaction.from_wallet():
+                        transaction_public_key = public_key
+                        break
+
+                pub_key = VerifyingKey.from_string(
+                    binascii.a2b_base64(transaction_public_key),
+                    curve=SECP256k1)
+
+                assert pub_key.verify(transaction.signature(),
+                    transaction.prepare_for_signature(),
+                    hashfunc=hashlib.sha256)
+
         logging.debug("Block accepted")
         self._quantcoin.store_block(block)
 
@@ -181,22 +198,6 @@ class Network:
             'cmd': 'register',
             'address': ip,
             'port': port
-        }
-
-        thread.start_new_thread(self._send_cmd, (cmd,))
-
-    def register_wallet(self, public_key):
-        '''
-        Register a new wallet in the network.
-
-            public_key: the public key of the wallet.
-        '''
-        logging.debug("Sending register_wallet command(public_key={})"
-                      .format(public_key))
-
-        cmd = {
-            'cmd': 'register_wallet',
-            'public_key': public_key
         }
 
         thread.start_new_thread(self._send_cmd, (cmd,))

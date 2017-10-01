@@ -13,6 +13,7 @@ from quantcoin import QuantCoin
 from block import Block
 from transaction import Transaction
 from ecdsa import SigningKey, SECP256k1
+from miner import Miner
 
 
 class Client(Cmd):
@@ -107,8 +108,6 @@ class Client(Cmd):
         '''
         while True:
             self._network.register(ip, port)
-            for wallet in self._quantcoin.wallets():
-                self._network.register_wallet(wallet['public_key'])
             self.do_update("peers")
             self.do_update("blocks")
             time.sleep(10)
@@ -194,11 +193,11 @@ class Client(Cmd):
 
         transaction_base_args, params = params[:2], params[2:]
         my_address, commission = transaction_base_args
-        to_wallets = [(None, commission)]
+        to_wallets = [(None, float(commission))]
         while len(params) > 0:
             address, amount = params[:2]
             params = params[2:]
-            to_wallets.append((address, amount))
+            to_wallets.append((address, float(amount)))
 
         transaction = Transaction(my_address, to_wallets)
 
@@ -213,7 +212,7 @@ class Client(Cmd):
                 break
 
         if using_wallet is None:
-            print("You do not own a wallet with the address {}".
+            print("You do not own a wallet with the address {}.".
                   format(my_address))
             return False
 
@@ -236,14 +235,13 @@ def print_help():
     '''
     Shows the help to the shell options.
     '''
-    print("client.py")
     print("\tLaunch the client of the quantcoin network.")
     print("\tOptions:")
     print("\t\t-h(--help)\t\t\tShows this help message")
     print("\t\t-i(--ip) <value>\t\tDefines the ip or address that this " +
           "client will use to register in the network.")
     print("\t\t-p(--port) <value>\t\tDefines the port that the client is " +
-          "going to user")
+          "going to use")
     print("\t\t-d(--debug)\t\t\tTurn on debugging messages")
     print("\t\t-s(--storage) <value>\t\tDefines the path to the public " +
           "storage")
@@ -252,14 +250,12 @@ def print_help():
 
 
 if __name__ == "__main__":
-    import thread
-
     try:
         application_args = sys.argv[1:]
         opts, _ = getopt.getopt(application_args,
-                                "hi:p:ds:x:", ["help", "ip:", "port:",
+                                "hi:p:ds:x:m:", ["help", "ip:", "port:",
                                                "debug", "storage:",
-                                               "private_storage:"])
+                                               "private_storage:", "mine:"])
     except getopt.GetoptError:
         print_help()
         exit()
@@ -272,10 +268,6 @@ if __name__ == "__main__":
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print_help()
-            exit()
-        elif opt in ("-m", "--mine"):
-            # TODO do the mining thing
-            print("Mining daemon requested")
             exit()
         elif opt in ('-i', '--ip'):
             ip = arg
@@ -308,6 +300,5 @@ if __name__ == "__main__":
     quantcoin.load_private(private_database, password)
     quantcoin.private_database = private_database
     quantcoin.password = password
-
     client = Client(quantcoin, ip, port)
     client.cmdloop()
