@@ -19,7 +19,7 @@ class Transaction(object):
     block.
     """
 
-    def __init__(self, from_wallet, to_wallets, signature=None):
+    def __init__(self, from_wallet, to_wallets, signature=None, public_key=None):
         """
 
         :param from_wallet: the address of the sender of the money
@@ -28,12 +28,14 @@ class Transaction(object):
                            address, this case is the commission to the miner. The commission
                            is optional.
         :param signature: The transaction's proof of that it's from the 'from_wallet'.
+        :param public_key: The transaction's public key encoded.
         """
         self._from_wallet = from_wallet
         if not isinstance(to_wallets, list):
             to_wallets = [to_wallets]
         self._to_wallets = to_wallets
         self._signature = signature
+        self._public_key = public_key
 
     def json(self):
         """
@@ -44,7 +46,8 @@ class Transaction(object):
                 'from': self.from_wallet(),
                 'to': self.to_wallets(),
             },
-            'signature': self.signature()
+            'signature': self.signature(),
+            'public_key': self.public_key()
         }
 
         return json.dumps(dictionary)
@@ -102,28 +105,37 @@ class Transaction(object):
         signature = priv_key.sign(to_sign, hashfunc=hashlib.sha256)
         self.signed(binascii.b2a_base64(signature))
 
-    def signed(self, signature):
+    def signed(self, signature, public_key):
         """
         Stores the signature into the transaction. After this the transaction
         is ready for inclusion in the blockchain.
         """
         self._signature = signature
+        self._public_key = public_key
 
-    def verify(self, public_key_encoded):
+    def verify(self):
         """
         Verifies the transaction proof of authenticity
-        :param public_key_encoded: The public key of the from wallet
         :return: True if the transaction is authentic
         """
-        to_verify = self.prepare_for_signature()
-        pub_key = VerifyingKey.from_string(binascii.a2b_base64(public_key_encoded),
-                                           curve=SECP256k1)
-        pub_key.verify(signature=binascii.a2b_base64(self.signature()),
-                       data=to_verify,
-                       hashfunc=hashlib.sha256)
+        if self._public_key is not None:
+            to_verify = self.prepare_for_signature()
+            pub_key = VerifyingKey.from_string(binascii.a2b_base64(self._public_key),
+                                               curve=SECP256k1)
+            return pub_key.verify(signature=binascii.a2b_base64(self.signature()),
+                                  data=to_verify,
+                                  hashfunc=hashlib.sha256)
+        else:
+            return False
 
     def signature(self):
         """
         Obtains the signature of this transaction
         """
         return self._signature
+
+    def public_key(self):
+        """
+        Obtains the public key of the transaction
+        """
+        return self._public_key

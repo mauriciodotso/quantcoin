@@ -56,25 +56,25 @@ class Block:
         """
         Parses a JSON of a block.
 
-        returns: The block instance represented by the JSON object.
+        :returns The block instance represented by the JSON object.
         """
         transactions = []
         for transaction in data['transactions']:
-            transaction_object = Transaction(transaction['body']
-                                                        ['from_wallet'],
+            transaction_object = Transaction(transaction['body']['from_wallet'],
                                              transaction['body']['to_wallets'],
-                                             transaction['signature'])
+                                             transaction['signature'],
+                                             transaction['public_key'])
             transactions.append(transaction_object)
 
         block = Block(data['author'], transactions,
                       binascii.a2b_base64(data['previous']),
-                      binascii.a2b_base64(data['nounce']),
+                      binascii.a2b_base64(data['nonce']),
                       binascii.a2b_base64(data['digest']))
         return block
 
     def transactions(self):
         """
-        Returns the set of transactions included in this block sorted.
+        :returns the set of transactions included in this block sorted.
         """
         return sorted(self._transactions,
                       lambda transaction1, transaction2:
@@ -82,7 +82,7 @@ class Block:
 
     def previous(self):
         """
-        Returns the reference to the previous block.
+        :returns the reference to the previous block.
         """
         return self._previous_block
 
@@ -118,7 +118,7 @@ class Block:
             nounce = 0
             digest = hashlib.sha256(self.author() + self.previous() +
                                     transactions_digest + str(nounce)).digest()
-            while (digest[:difficulty] != bytearray(zeros)):
+            while digest[:difficulty] != bytearray(zeros):
                 nounce = nounce + 1
                 digest = hashlib.sha256(transactions_digest +
                                         str(nounce)).digest()

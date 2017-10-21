@@ -43,14 +43,10 @@ class Miner(Node):
         transaction_data = data['transaction']
         transaction = Transaction(from_wallet=transaction_data['body']['from_wallet'],
                                   to_wallets=transaction_data['body']['to_wallets'],
-                                  signature=transaction_data['signature'])
+                                  signature=transaction_data['signature'],
+                                  public_key=transaction_data['public_key'])
 
-        public_key_encoded = self._quantcoin.get_public_key(transaction.from_wallet())
-        if public_key_encoded is None:
-            logging.debug("Public key isn't known for address {}".format(transaction.from_wallet()))
-            # FIXME(mauricio): Try to resolve address?
-        else:
-            if transaction.verify(public_key_encoded):
-                self._transaction_queue_lock.acquire()
-                self._transaction_queue.append(transaction)
-                self._transaction_queue_lock.release()
+        if transaction.verify():
+            self._transaction_queue_lock.acquire()
+            self._transaction_queue.append(transaction)
+            self._transaction_queue_lock.release()

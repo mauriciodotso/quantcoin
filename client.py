@@ -246,8 +246,8 @@ if __name__ == "__main__":
         application_args = sys.argv[1:]
         opts, _ = getopt.getopt(application_args,
                                 "hi:p:ds:x:m:", ["help", "ip:", "port:",
-                                               "debug", "storage:",
-                                               "private_storage:", "mine:"])
+                                                 "debug", "storage:",
+                                                 "private_storage:", "mine:"])
     except getopt.GetoptError:
         print_help()
         exit()
