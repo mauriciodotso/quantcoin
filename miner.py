@@ -12,7 +12,7 @@ class Miner(Node):
     """
 
     def __init__(self, wallet, quantcoin, ip="0.0.0.0", port=65345):
-        Node.__init__(self, quantcoin, ip, port)
+        Node.__init__(self, quantcoin=quantcoin, ip=ip, port=port)
 
         self._wallet = wallet
         self._transaction_queue = []
@@ -39,10 +39,11 @@ class Miner(Node):
         :return:
         """
         Node.send(self, data, args, kwargs)
-        logging.debug("Transaction received. {}".format(data))
-        transaction = Transaction(from_wallet=data['body']['from_wallet'],
-                                  to_wallets=data['body']['to_wallets'],
-                                  signature=data['signature'])
+        logging.debug("Transaction received. {}".format(data['transaction']))
+        transaction_data = data['transaction']
+        transaction = Transaction(from_wallet=transaction_data['body']['from_wallet'],
+                                  to_wallets=transaction_data['body']['to_wallets'],
+                                  signature=transaction_data['signature'])
 
         public_key_encoded = self._quantcoin.get_public_key(transaction.from_wallet())
         if public_key_encoded is None:

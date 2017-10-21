@@ -39,8 +39,6 @@ class Client(Cmd):
 
         self._quantcoin = quantcoin
         self._quantcoin.store_node((ip, port))
-        node = Node(quantcoin, ip, port)
-        thread.start_new_thread(node.run, ())
         self._network = Network(quantcoin)
         thread.start_new_thread(self._update_job, (ip, port))
 
@@ -198,8 +196,10 @@ class Client(Cmd):
 
         transaction = Transaction(my_address, to_wallets)
 
+        '''
         assert transaction.amount_spent() <= \
             self._quantcoin.amount_owned(my_address)
+        '''
 
         using_wallet = None
         for wallet in self._quantcoin.wallets():
@@ -212,9 +212,7 @@ class Client(Cmd):
                   format(my_address))
             return False
 
-
         transaction.sign(using_wallet['private_key'])
-
         self._network.send(transaction.json())
 
     def do_owned(self, line):
@@ -299,8 +297,13 @@ if __name__ == "__main__":
     quantcoin.private_database = private_database
     quantcoin.password = password
     if miner:
-        miner = Miner(quantcoin, ip, port)
-        thread.start_new_thread(miner.run, ())
+        miner = Miner(miner_wallet, quantcoin, ip, port)
+        miner_thread = threading.Thread(target=miner.run)
+        miner_thread.start()
+        client = Client(quantcoin, ip, port)
+        client.cmdloop()
     else:
+        node = Node(quantcoin, ip, port)
+        thread.start_new_thread(node.run, ())
         client = Client(quantcoin, ip, port)
         client.cmdloop()
