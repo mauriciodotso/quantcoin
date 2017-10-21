@@ -1,4 +1,5 @@
 import logging
+import threading
 from node import Node
 from transaction import Transaction
 
@@ -10,10 +11,12 @@ class Miner(Node):
     announced it will start mining from that block
     """
 
-    def __init__(self, quantcoin, ip="0.0.0.0", port=65345):
+    def __init__(self, wallet, quantcoin, ip="0.0.0.0", port=65345):
         Node.__init__(self, quantcoin, ip, port)
 
+        self._wallet = wallet
         self._transaction_queue = []
+        self._transaction_queue_lock = threading.Lock()
 
     def new_block(self, data, *args, **kwargs):
         """
@@ -35,8 +38,18 @@ class Miner(Node):
         :param kwargs:
         :return:
         """
-        logging.debug("Transaction received. Adding to the queue.")
-        transaction = Transaction()
+        Node.send(self, data, args, kwargs)
+        logging.debug("Transaction received. {}".format(data))
+        transaction = Transaction(from_wallet=data['body']['from_wallet'],
+                                  to_wallets=data['body']['to_wallets'],
+                                  signature=data['signature'])
 
-if __name__ == "__main__":
-    print("lallala")
+        public_key_encoded = self._quantcoin.get_public_key(transaction.from_wallet())
+        if public_key_encoded is None:
+            logging.debug("Public key isn't known for address {}".format(transaction.from_wallet()))
+            # FIXME(mauricio): Try to resolve address?
+        else:
+            if transaction.verify(public_key_encoded):
+                self._transaction_queue_lock.acquire()
+                self._transaction_queue.append(transaction)
+                self._transaction_queue_lock.release()

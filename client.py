@@ -259,6 +259,8 @@ if __name__ == "__main__":
     debug = False
     database = 'default.qc'
     private_database = 'default.qc-priv'
+    miner = False
+    miner_wallet = ''
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print_help()
@@ -273,7 +275,9 @@ if __name__ == "__main__":
             database = arg
         elif opt in ('-x', '--private_storage'):
             private_database = arg
-
+        elif opt in ('-m', '--mine'):
+            miner = True
+            miner_wallet = arg
     if debug:
         import logging
         import sys
@@ -294,5 +298,9 @@ if __name__ == "__main__":
     quantcoin.load_private(private_database, password)
     quantcoin.private_database = private_database
     quantcoin.password = password
-    client = Client(quantcoin, ip, port)
-    client.cmdloop()
+    if miner:
+        miner = Miner(quantcoin, ip, port)
+        thread.start_new_thread(miner.run, ())
+    else:
+        client = Client(quantcoin, ip, port)
+        client.cmdloop()
