@@ -1,4 +1,7 @@
 import json
+import hashlib
+import binascii
+from ecdsa import SigningKey, VerifyingKey, SECP256k1
 
 
 class Transaction(object):
@@ -88,12 +91,36 @@ class Transaction(object):
 
         return json.dumps(data)
 
+    def sign(self, private_key_encoded):
+        """
+        Does the transaction signature
+        :param private_key_encoded: The private key encoded in Base64
+        """
+        to_sign = self.prepare_for_signature()
+        priv_key = SigningKey.from_string(binascii.a2b_base64(private_key_encoded),
+                                          curve=SECP256k1)
+        signature = priv_key.sign(to_sign, hashfunc=hashlib.sha256)
+        self.signed(binascii.b2a_base64(signature))
+
     def signed(self, signature):
         """
         Stores the signature into the transaction. After this the transaction
         is ready for inclusion in the blockchain.
         """
         self._signature = signature
+
+    def verify(self, public_key_encoded):
+        """
+        Verifies the transaction proof of authenticity
+        :param public_key_encoded: The public key of the from wallet
+        :return: True if the transaction is authentic
+        """
+        to_verify = self.prepare_for_signature()
+        pub_key = VerifyingKey.from_string(binascii.a2b_base64(public_key_encoded),
+                                           curve=SECP256k1)
+        pub_key.verify(signature=binascii.a2b_base64(self.signature()),
+                       data=to_verify,
+                       hashfunc=hashlib.sha256)
 
     def signature(self):
         """

@@ -4,15 +4,12 @@ import getopt
 import thread
 import threading
 import time
-import hashlib
-import binascii
 import getpass
 from cmd import Cmd
 from node import Node, Network
 from quantcoin import QuantCoin
 from block import Block
 from transaction import Transaction
-from ecdsa import SigningKey, SECP256k1
 from miner import Miner
 
 
@@ -202,9 +199,8 @@ class Client(Cmd):
         transaction = Transaction(my_address, to_wallets)
 
         assert transaction.amount_spent() <= \
-               self._quantcoin.amount_owned(my_address)
+            self._quantcoin.amount_owned(my_address)
 
-        to_sign = transaction.prepare_for_signature()
         using_wallet = None
         for wallet in self._quantcoin.wallets():
             if wallet['address'] == my_address:
@@ -216,11 +212,9 @@ class Client(Cmd):
                   format(my_address))
             return False
 
-        priv_key = SigningKey.from_string(binascii.a2b_base64(
-                                          using_wallet['private_key']),
-                                          curve=SECP256k1)
-        signature = priv_key.sign(to_sign, hashfunc=hashlib.sha256)
-        transaction.signed(binascii.b2a_base64(signature))
+
+        transaction.sign(using_wallet['private_key'])
+
         self._network.send(transaction.json())
 
     def do_owned(self, line):
