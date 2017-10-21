@@ -185,7 +185,7 @@ class Network:
                     data = json.loads(data)
                     receive_function(data, s)
         else:
-            logging.debug("No nodes registered")
+            logging.warn("No nodes registered. Cmd: {}".format(cmd))
 
     def register(self, ip, port):
         """
