@@ -129,7 +129,7 @@ class Node:
 
     def run(self):
         '''
-        Awaits and handles commands indefinetly.
+        Awaits and handles commands indefinitely.
         '''
         logging.debug("Node running(ip={}, port={})".
                       format(self._ip, self._port))
