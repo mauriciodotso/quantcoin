@@ -124,7 +124,7 @@ class Node:
                 if response is not None:
                     connection.send(response)
             except exceptions.NameError as e:
-                logging.debug("An exception occured on connection handle. {}".
+                logging.debug("An exception occurred on connection handle. {}".
                               format(e))
 
     def run(self):
@@ -157,7 +157,7 @@ class Network:
     def _send_cmd(self, cmd, receive_function=None):
         '''
         Sends the command to all peers known in the network. If the peer
-        respond, the data is passed trought the callback receive_function if it
+        respond, the data is passed trough the callback receive_function if it
         was provided.
 
             cmd: the command to be sent to the network.
