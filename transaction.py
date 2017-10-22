@@ -26,7 +26,7 @@ class Transaction(object):
         :param to_wallets: the tuples with addresses of the receivers and amounts
                            received. There is a special to_wallet tuple with a None wallet
                            address, this case is the commission to the miner. The commission
-                           is optional.
+                           is optional and must be put as the first on to_wallet list.
         :param signature: The transaction's proof of that it's from the 'from_wallet'.
         :param public_key: The transaction's public key encoded.
         """
@@ -64,6 +64,15 @@ class Transaction(object):
         """
         return self._to_wallets
 
+    def commission(self):
+        """
+        :return: The commission value offered by this transaction.
+        """
+        if self._to_wallets[0][0] is None:
+            return self._to_wallets[0][1]
+        else:
+            return 0.0
+
     def is_creation_transaction(self):
         """
         True if this transaction corresponds to a money creation transaction.
@@ -94,7 +103,7 @@ class Transaction(object):
 
         return json.dumps(data)
 
-    def sign(self, private_key_encoded):
+    def sign(self, private_key_encoded, public_key_encoded):
         """
         Does the transaction signature
         :param private_key_encoded: The private key encoded in Base64
@@ -103,7 +112,7 @@ class Transaction(object):
         priv_key = SigningKey.from_string(binascii.a2b_base64(private_key_encoded),
                                           curve=SECP256k1)
         signature = priv_key.sign(to_sign, hashfunc=hashlib.sha256)
-        self.signed(binascii.b2a_base64(signature))
+        self.signed(binascii.b2a_base64(signature), public_key_encoded)
 
     def signed(self, signature, public_key):
         """

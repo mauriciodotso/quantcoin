@@ -37,6 +37,7 @@ class Node:
             "new_block": self.new_block,
             "send": self.send
         }
+        self._running = False
 
     def get_nodes(self, *args, **kwargs):
         """
@@ -137,9 +138,16 @@ class Node:
         s = socket.socket()
         s.bind((self._ip, self._port))
         s.listen(5)
-        while True:
+        self._running = True
+        while self._running:
             connection, address = s.accept()
             thread.start_new_thread(self.handle, (connection, address))
+
+    def stop(self):
+        """
+        Stops the node
+        """
+        self._running = False
 
 
 class Network:
@@ -211,8 +219,11 @@ class Network:
         :param block: The block to be added to the blockchain.
         """
         logging.debug("Sending new block")
-        cmd = block.json()
-        cmd['cmd'] = 'new_block'
+        block_json = block.json()
+        cmd = {
+            'cmd': 'new_block',
+            'block': block_json
+        }
 
         thread.start_new_thread(self._send_cmd, (cmd,))
 

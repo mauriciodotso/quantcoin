@@ -72,6 +72,23 @@ class Block:
                       binascii.a2b_base64(data['digest']))
         return block
 
+    def json(self):
+        """
+        Encode this block in JSON.
+        """
+        if self.nonce() is not None:
+            previous = binascii.b2a_base64(self.previous()) \
+                            if self.previous() is not None else None
+            dictionary = {
+                'author': self.author(),
+                'nonce': binascii.b2a_base64(bytes([self.nonce()])),
+                'digest': binascii.b2a_base64(self.digest()),
+                'previous': previous,
+                'transactions': [t.json() for t in self.transactions()]
+            }
+
+            return json.dumps(dictionary)
+
     def transactions(self):
         """
         :returns the set of transactions included in this block sorted.
@@ -93,17 +110,17 @@ class Block:
         ordered_transactions = self.transactions()
         queue = []
         for transaction in ordered_transactions:
-            queue.append(hashlib.sha256(transaction.json()))
+            queue.append(hashlib.sha256(transaction.json()).digest())
 
         if len(queue) % 2 == 1:  # we have and odd number of transactions
             queue.append("")     # append and empty string
 
         while len(queue) > 1:
             pair, queue = queue[:2], queue[2:]
-            pair_hash = hashlib.sha256(pair[0].digest() + pair[1].digest())
+            pair_hash = hashlib.sha256(pair[0] + pair[1]).digest()
             queue.append(pair_hash)
 
-        return queue[0].digest()
+        return queue[0]
 
     def proof_of_work(self, difficulty):
         """
@@ -136,7 +153,7 @@ class Block:
         """
         The digest value of this block
         """
-        return self._digest
+        return binascii.b2a_base64(self._digest)
 
     def valid(self):
         """
@@ -157,20 +174,3 @@ class Block:
         Returns the address of the author of this block.
         """
         return self._author
-
-    def json(self):
-        """
-        Encode this block in JSON.
-        """
-        if self.nonce() is not None:
-            previous = binascii.b2a_base64(self.previous()) \
-                            if self.previous() is not None else None
-            dictionary = {
-                'author': self.author(),
-                'nonce': binascii.b2a_base64(bytes([self.nonce()])),
-                'digest': binascii.b2a_base64(self.digest()),
-                'previous': previous,
-                'transactions': [t.json() for t in self.transactions()]
-            }
-
-            return json.dumps(dictionary)

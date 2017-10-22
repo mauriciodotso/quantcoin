@@ -212,7 +212,7 @@ class Client(Cmd):
                   format(my_address))
             return False
 
-        transaction.sign(using_wallet['private_key'])
+        transaction.sign(using_wallet['private_key'], using_wallet['public_key'])
         self._network.send(transaction.json())
 
     def do_owned(self, line):
@@ -298,12 +298,18 @@ if __name__ == "__main__":
     quantcoin.password = password
     if miner:
         miner = Miner(miner_wallet, quantcoin, ip, port)
-        miner_thread = threading.Thread(target=miner.run)
+        miner_network_thread = threading.Thread(target=miner.run)
+        miner_network_thread.start()
+        miner_thread = threading.Thread(target=miner.mine)
         miner_thread.start()
         client = Client(quantcoin, ip, port)
         client.cmdloop()
+        miner.stop_mining()
+        miner.stop()
     else:
         node = Node(quantcoin, ip, port)
-        thread.start_new_thread(node.run, ())
+        node_thread = threading.Thread(target=node.run)
+        node_thread.start()
         client = Client(quantcoin, ip, port)
         client.cmdloop()
+        node.stop()
