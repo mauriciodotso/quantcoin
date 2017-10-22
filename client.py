@@ -213,7 +213,7 @@ class Client(Cmd):
             return False
 
         transaction.sign(using_wallet['private_key'], using_wallet['public_key'])
-        self._network.send(transaction.json())
+        self._network.send(transaction)
 
     def do_owned(self, line):
         address = line.strip()

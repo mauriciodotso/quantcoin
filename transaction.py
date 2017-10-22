@@ -50,7 +50,7 @@ class Transaction(object):
             'public_key': self.public_key()
         }
 
-        return json.dumps(dictionary)
+        return dictionary
 
     def from_wallet(self):
         """

@@ -277,10 +277,10 @@ class Network:
         """
         Announces to the network a transaction.
         """
-        logging.debug("Sending: {}".format(transaction))
+        logging.debug("Sending: {}".format(transaction.json()))
         cmd = {
             'cmd': 'send',
-            'transaction': transaction
+            'transaction': transaction.json()
         }
 
         thread.start_new_thread(self._send_cmd, (cmd,))

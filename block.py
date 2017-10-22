@@ -87,7 +87,7 @@ class Block:
                 'transactions': [t.json() for t in self.transactions()]
             }
 
-            return json.dumps(dictionary)
+            return dictionary
 
     def transactions(self):
         """
