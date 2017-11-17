@@ -1,0 +1,8 @@
+appdirs==1.4.3
+ecdsa==0.13
+packaging==16.8
+pep8==1.7.0
+pycrypto==2.6.1
+pyparsing==2.2.0
+scrypt==0.8.0
+six==1.10.0
