@@ -101,3 +101,6 @@ ENV/
 #specific to this project
 default.qc*
 wallets
+
+#pycharm ide
+.idea
