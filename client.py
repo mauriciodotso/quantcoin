@@ -69,8 +69,9 @@ class Client(Cmd):
         \t\tShows all wallets in the private database. All information about
         \t\twallets will be shown, so be careful as this can expose your keys.
 
-        \texit:
+        \texit <ns?>:
         \t\tTerminates the client and save everything to the defined wallets.
+        \t\tIf ns parameter is passed the state won't be saved to the disk.
 
         \tpeers:
         \t\tShows all peers known at the moment.
@@ -92,6 +93,12 @@ class Client(Cmd):
         \t\tpair <to_address> <amount> can be repeated indefinitely.
         \t\t<to_address> identifies the wallet that will receive the money and
         \t\tamount is the value sent.
+        
+        \towned <wallet address>
+        \t\tPrints the amount owned by the wallet address.
+        
+        \tknown_wallets
+        \t\tPrints a list of wallets known in the network
         """)
 
     def _update_job(self, ip, port):
@@ -131,9 +138,10 @@ class Client(Cmd):
         Saves the public and private store and terminates this shell.
         """
         print("Bye!")
-        self._quantcoin.save(self._quantcoin.database)
-        self._quantcoin.save_private(self._quantcoin.private_database,
-                                     self._quantcoin.password)
+        if line not in ("no-save", "ns"):
+            self._quantcoin.save(self._quantcoin.database)
+            self._quantcoin.save_private(self._quantcoin.private_database,
+                                         self._quantcoin.password)
         return True
 
     def do_peers(self, line):
