@@ -86,7 +86,7 @@ class Client(Cmd):
         \t\tthe blockchain.
 
         \tsend <my_address> <commission> (<to_address> <amount>)+
-        \t\tAnounces a transference to the network so miners include it in the
+        \t\tAnnounces a transference to the network so miners include it in the
         \t\tblockchain. <my_address> identifies what wallet should be used to
         \t\tsign to the transaction. <commission> tells miners what amount is
         \t\toffered to who includes this transaction in the blockchain. The
