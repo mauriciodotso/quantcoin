@@ -1,16 +1,17 @@
 #!/usr/bin/python
-import sys
 import getopt
+import getpass
+import sys
 import thread
 import threading
 import time
-import getpass
 from cmd import Cmd
-from node import Node, Network
-from quantcoin import QuantCoin
+
 from block import Block
-from transaction import Transaction
 from miner import Miner
+from node import Network, Node
+from quantcoin import QuantCoin
+from transaction import Transaction
 
 
 class Client(Cmd):
@@ -279,13 +280,14 @@ if __name__ == "__main__":
     if debug:
         import logging
         import sys
+
         root = logging.getLogger()
         root.setLevel(logging.DEBUG)
 
         channel = logging.StreamHandler(sys.stdout)
         channel.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
-                    "[%(levelname)s] %(asctime)s: %(message)s")
+            "[%(levelname)s] %(asctime)s: %(message)s")
         channel.setFormatter(formatter)
         root.addHandler(channel)
 

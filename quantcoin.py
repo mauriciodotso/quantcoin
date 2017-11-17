@@ -1,16 +1,18 @@
-import logging
-import string
-import random
-import json
-from block import Block
-import os
 import binascii
 import hashlib
-from Crypto.Cipher import AES
-from Crypto import Random
-from ecdsa import SigningKey, SECP256k1
-from ecdsa.util import randrange_from_seed__trytryagain
+import json
+import logging
+import random
+import string
+
+import os
 import scrypt
+from Crypto import Random
+from Crypto.Cipher import AES
+from ecdsa import SECP256k1, SigningKey
+from ecdsa.util import randrange_from_seed__trytryagain
+
+from block import Block
 
 
 class QuantCoin:
@@ -62,7 +64,7 @@ class QuantCoin:
             storage = {
                 'blocks': json_blocks,
                 'peers': self._peers
-                }
+            }
             json.dump(storage, fp)
 
     def load_private(self, database, password):
@@ -197,7 +199,7 @@ class QuantCoin:
         logging.debug("Creating wallet(seed={})".format(seed))
         if seed is None:
             seed = ''.join([random.SystemRandom().
-                            choice(string.ascii_letters + string.digits)
+                           choice(string.ascii_letters + string.digits)
                             for _ in range(50)])
         seed = int(hashlib.sha256(seed).hexdigest(), 16)
         secret_exponent = randrange_from_seed__trytryagain(seed,

@@ -1,6 +1,5 @@
-import json
-import hashlib
 import binascii
+import hashlib
 
 from transaction import Transaction
 
@@ -78,7 +77,7 @@ class Block:
         """
         if self.nonce() is not None:
             previous = binascii.b2a_base64(self.previous()) \
-                            if self.previous() is not None else None
+                if self.previous() is not None else None
             dictionary = {
                 'author': self.author(),
                 'nonce': binascii.b2a_base64(bytes([self.nonce()])),
@@ -113,7 +112,7 @@ class Block:
             queue.append(hashlib.sha256(transaction.json()).digest())
 
         if len(queue) % 2 == 1:  # we have and odd number of transactions
-            queue.append("")     # append and empty string
+            queue.append("")  # append and empty string
 
         while len(queue) > 1:
             pair, queue = queue[:2], queue[2:]

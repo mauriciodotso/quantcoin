@@ -1,12 +1,12 @@
+import json
 import logging
 import math
 import threading
 import time
-import json
-from block import Block
-from node import Node, Network
-from transaction import Transaction
 
+from block import Block
+from node import Network, Node
+from transaction import Transaction
 
 
 class Miner(Node):

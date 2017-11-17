@@ -1,7 +1,8 @@
-import json
-import hashlib
 import binascii
-from ecdsa import SigningKey, VerifyingKey, SECP256k1
+import hashlib
+import json
+
+from ecdsa import SECP256k1, SigningKey, VerifyingKey
 
 
 class Transaction(object):
