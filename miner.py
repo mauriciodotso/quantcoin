@@ -38,6 +38,13 @@ class Miner(Node):
         :return:
         """
         Node.new_block(self, data, args, kwargs)
+        block = Block.from_json(data)
+        self._transaction_queue_lock.acquire()
+        # Remove transactions already processed from the queue
+        for transaction in block.transactions():
+            if transaction in self._transaction_queue:
+                self._transaction_queue.remove(transaction)
+        self._transaction_queue_lock.release
 
     def send(self, data, *args, **kwargs):
         """
@@ -89,15 +96,24 @@ class Miner(Node):
             self._transaction_queue_lock.release()
             logging.info("Starting to mine block.")
             print("Starting to mine block.")
-            block.proof_of_work(self._network_difficulty)
-            self._transaction_queue_lock.acquire()
-            self._transaction_queue = []
-            self._transaction_queue_lock.release()
+            block.proof_of_work(self._network_difficulty, self, len(self._quantcoin.blocks()))
+
             logging.info("Block found! Block digest: {}; Transactions: {}"
                          .format(block.digest(), len(block.transactions())))
             print("Block found! Block digest: {}; Transactions: {}"
                   .format(block.digest(), len(block.transactions())))
+
+            self._transaction_queue_lock.acquire()
+            self._transaction_queue = []
+            self._transaction_queue_lock.release()
+
             network.new_block(block)
+
+    def last_block_index(self):
+        """
+        Returns the last known block index
+        """
+        return len(self._quantcoin.blocks())
 
     def stop_mining(self):
         self._mining = False

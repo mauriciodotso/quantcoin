@@ -121,7 +121,7 @@ class Block:
 
         return queue[0]
 
-    def proof_of_work(self, difficulty):
+    def proof_of_work(self, difficulty, miner, index):
         """
         Does the search for a nonce value that results in a digest value that
         satisfies the blockchain requirements to include this block.
@@ -131,15 +131,19 @@ class Block:
         if self._nonce is None:
             zeros = [0 for _ in range(difficulty)]
             transactions_digest = self.transactions_digest()
-            nounce = 0
+            nonce = 0
             digest = hashlib.sha256(self.author() + self.previous() +
-                                    transactions_digest + str(nounce)).digest()
+                                    transactions_digest + str(nonce)).digest()
             while digest[:difficulty] != bytearray(zeros):
-                nounce = nounce + 1
-                digest = hashlib.sha256(transactions_digest +
-                                        str(nounce)).digest()
+                nonce = nonce + 1
+                # Checks if another block was already published in the network
+                if nonce % 100 == 0:
+                    if miner.last_block_index() > index:
+                        return
 
-            self._nonce = nounce
+                digest = hashlib.sha256(transactions_digest + str(nonce)).digest()
+
+            self._nonce = nonce
             self._digest = digest
 
     def nonce(self):
