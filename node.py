@@ -89,22 +89,20 @@ class Node:
                 for to_address, _ in transaction.to_wallets():
                     assert to_address != transaction.from_wallet()
 
-                transaction_public_key = None
-                for address, public_key in self._quantcoin.public_wallets():
-                    if address == transaction.from_wallet():
-                        transaction_public_key = public_key
-                        break
+                transaction_public_key = transaction.public_key()
 
-                if transaction_public_key is None:
-                    logging.debug("Do not known the public key of the transaction")
-                    return
-                pub_key = VerifyingKey.from_string(
+                public_key = VerifyingKey.from_string(
                     binascii.a2b_base64(transaction_public_key),
                     curve=SECP256k1)
 
-                assert pub_key.verify(transaction.signature(),
-                                      transaction.prepare_for_signature(),
-                                      hashfunc=hashlib.sha256)
+                # A transaction must be created by the owner of the address
+                address = 'QC' + hashlib.sha1(public_key.to_string()).hexdigest()
+                assert address == transaction.from_wallet()
+
+                # The transaction integrity must be assured
+                assert public_key.verify(transaction.signature(),
+                                         transaction.prepare_for_signature(),
+                                         hashfunc=hashlib.sha256)
             else:
                 assert transaction.amount_spent() < 1
 
