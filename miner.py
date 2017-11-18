@@ -54,6 +54,7 @@ class Miner(Node):
         self._last_block = known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
         print("last_block: {}".format(self._last_block))
         self._last_block_index = len(known_blocks)
+        self._network_difficulty = int(2 + math.sqrt(len(known_blocks)))
 
     def send(self, data, *args, **kwargs):
         """
@@ -109,8 +110,9 @@ class Miner(Node):
             # print("Starting to mine block {}.".format(self.last_block_index()))
             block_index = self.last_block_index()
             start_nonce = 0
-            while (block_index == self.last_block_index() and not block.proof_of_work(self._network_difficulty,
-                                                                                      start_nonce, start_nonce + 100)):
+            while (block_index == self.last_block_index() and self.mining() and
+                   not block.proof_of_work(self._network_difficulty,
+                                           start_nonce, start_nonce + 100)):
                 start_nonce += 101
 
             if block.nonce() is not None:

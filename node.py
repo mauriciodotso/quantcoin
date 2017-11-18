@@ -73,6 +73,7 @@ class Node:
         """
         Verifies and store if valid the new block announced in the network.
         """
+        print(data)
         logging.debug("New block announced(block: {})".format(data))
         block = Block.from_json(data['block'])
         known_blocks = self._quantcoin.blocks()
