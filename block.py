@@ -66,7 +66,6 @@ class Block:
                                                  transaction['public_key'])
                 transactions.append(transaction_object)
 
-        print("data['digest']: {}".format(binascii.a2b_base64(data['digest'])))
         block = Block(data['author'], transactions,
                       binascii.a2b_base64(data['previous']),
                       data['nonce'],
