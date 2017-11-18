@@ -74,8 +74,9 @@ class Node:
         Verifies and store if valid the new block announced in the network.
         """
         logging.debug("New block announced(block: {})".format(data))
-        block = Block.from_json(data)
-        assert block.previous() == self._quantcoin.last_block().digest()
+        block = Block.from_json(data['block'])
+        known_blocks = self._quantcoin.blocks()
+        assert block.previous() == known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
         assert block.valid()
 
         for transaction in block.transactions():
@@ -94,6 +95,9 @@ class Node:
                         transaction_public_key = public_key
                         break
 
+                if transaction_public_key is None:
+                    logging.debug("Do not known the public key of the transaction")
+                    return
                 pub_key = VerifyingKey.from_string(
                     binascii.a2b_base64(transaction_public_key),
                     curve=SECP256k1)
@@ -101,6 +105,8 @@ class Node:
                 assert pub_key.verify(transaction.signature(),
                                       transaction.prepare_for_signature(),
                                       hashfunc=hashlib.sha256)
+            else:
+                assert transaction.amount_spent() < 1
 
         logging.debug("Block accepted")
         self._quantcoin.store_block(block)

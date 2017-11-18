@@ -25,8 +25,9 @@ class Miner(Node):
 
         known_blocks = quantcoin.blocks()
         self._last_block = known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
+        self._last_block_index = len(known_blocks)
         self._mining = False
-        self._network_difficulty = int(1 + math.sqrt(len(known_blocks)))
+        self._network_difficulty = int(2 + math.sqrt(len(known_blocks)))
 
     def new_block(self, data, *args, **kwargs):
         """
@@ -38,6 +39,8 @@ class Miner(Node):
         :return:
         """
         Node.new_block(self, data, args, kwargs)
+        self._last_block_index += 1
+
         block = Block.from_json(data)
         self._transaction_queue_lock.acquire()
         # Remove transactions already processed from the queue
@@ -45,6 +48,11 @@ class Miner(Node):
             if transaction in self._transaction_queue:
                 self._transaction_queue.remove(transaction)
         self._transaction_queue_lock.release
+
+        known_blocks = self._quantcoin.blocks()
+        self._last_block = known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
+        print("last_block: {}".format(self._last_block))
+        self._last_block_index = len(known_blocks)
 
     def send(self, data, *args, **kwargs):
         """
@@ -68,7 +76,7 @@ class Miner(Node):
             self._transaction_queue.append(transaction)
             self._transaction_queue_lock.release()
 
-    def mine(self, min_transaction_count=1, min_commission=-1):
+    def mine(self, min_transaction_count=0, min_commission=-1):
         self._mining = True
         print("Starting mining")
         network = Network(self._quantcoin)
@@ -95,25 +103,27 @@ class Miner(Node):
                           previous_block=self._last_block)
             self._transaction_queue_lock.release()
             logging.info("Starting to mine block.")
-            print("Starting to mine block.")
-            block.proof_of_work(self._network_difficulty, self, len(self._quantcoin.blocks()))
+            print("Starting to mine block {}.".format(self.last_block_index()))
+            if block.proof_of_work(self._network_difficulty, self, self.last_block_index()):
+                logging.info("Block found! Block digest: {}; Transactions: {}"
+                             .format(block.digest(), len(block.transactions())))
+                print("Block found! Block digest: {}; Transactions: {}"
+                      .format(block.digest(), len(block.transactions())))
 
-            logging.info("Block found! Block digest: {}; Transactions: {}"
-                         .format(block.digest(), len(block.transactions())))
-            print("Block found! Block digest: {}; Transactions: {}"
-                  .format(block.digest(), len(block.transactions())))
+                self._transaction_queue_lock.acquire()
+                self._transaction_queue = []
+                self._transaction_queue_lock.release()
 
-            self._transaction_queue_lock.acquire()
-            self._transaction_queue = []
-            self._transaction_queue_lock.release()
-
-            network.new_block(block)
+                network.new_block(block)
 
     def last_block_index(self):
         """
         Returns the last known block index
         """
-        return len(self._quantcoin.blocks())
+        return self._last_block_index
 
     def stop_mining(self):
         self._mining = False
+
+    def running(self):
+        return self._running

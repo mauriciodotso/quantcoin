@@ -96,9 +96,6 @@ class Client(Cmd):
         
         \towned <wallet address>
         \t\tPrints the amount owned by the wallet address.
-        
-        \tknown_wallets
-        \t\tPrints a list of wallets known in the network
         """)
 
     def _update_job(self, ip, port):
@@ -228,9 +225,6 @@ class Client(Cmd):
         address = line.strip()
         print(self._quantcoin.amount_owned(address))
 
-    def do_known_wallets(self, line):
-        print(self._quantcoin.public_wallets())
-
 
 def print_help():
     """
@@ -298,6 +292,7 @@ if __name__ == "__main__":
             "[%(levelname)s] %(asctime)s: %(message)s")
         channel.setFormatter(formatter)
         root.addHandler(channel)
+        print("Debug mode on.")
 
     quantcoin = QuantCoin()
     quantcoin.load(database)

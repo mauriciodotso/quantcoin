@@ -67,7 +67,7 @@ class Block:
 
         block = Block(data['author'], transactions,
                       binascii.a2b_base64(data['previous']),
-                      binascii.a2b_base64(data['nonce']),
+                      data['nonce'],
                       binascii.a2b_base64(data['digest']))
         return block
 
@@ -76,12 +76,12 @@ class Block:
         Encode this block in JSON.
         """
         if self.nonce() is not None:
-            previous = binascii.b2a_base64(self.previous()) \
+            previous = self.previous() \
                 if self.previous() is not None else None
             dictionary = {
                 'author': self.author(),
-                'nonce': binascii.b2a_base64(bytes([self.nonce()])),
-                'digest': binascii.b2a_base64(self.digest()),
+                'nonce': self.nonce(),
+                'digest': self.digest(),
                 'previous': previous,
                 'transactions': [t.json() for t in self.transactions()]
             }
@@ -100,13 +100,16 @@ class Block:
         """
         :returns the reference to the previous block.
         """
-        return self._previous_block
+        return binascii.b2a_base64(self._previous_block)
 
     def transactions_digest(self):
         """
         Obtains the digest value of the tree root of the transactions digests
         """
         ordered_transactions = self.transactions()
+        if len(ordered_transactions) == 0:
+            return hashlib.sha256("").digest()
+
         queue = []
         for transaction in ordered_transactions:
             queue.append(hashlib.sha256(transaction.json()).digest())
@@ -138,13 +141,17 @@ class Block:
                 nonce = nonce + 1
                 # Checks if another block was already published in the network
                 if nonce % 100 == 0:
-                    if miner.last_block_index() > index:
-                        return
+                    if (miner.last_block_index() > index) or (not miner.running()):
+                        print("last_block_index: {}, index: {}".format(miner.last_block_index(), index))
+                        print("New block announced in the network! Restarting mining.")
+                        return False
 
-                digest = hashlib.sha256(transactions_digest + str(nonce)).digest()
+                digest = hashlib.sha256(self.author() + self.previous() +
+                                        transactions_digest + str(nonce)).digest()
 
             self._nonce = nonce
             self._digest = digest
+            return True
 
     def nonce(self):
         """
@@ -168,6 +175,8 @@ class Block:
                                                self.previous() +
                                                transactions_digest +
                                                str(self._nonce)).digest()
+            print("calculated_digest: {}, self._digest: {}".format(binascii.b2a_base64(calculated_digest),
+                                                                   binascii.b2a_base64(self._digest)))
             return calculated_digest == self._digest
         else:
             return False
@@ -176,4 +185,4 @@ class Block:
         """
         Returns the address of the author of this block.
         """
-        return self._author
+        return self._author.encode('utf-8')
