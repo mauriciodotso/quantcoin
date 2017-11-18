@@ -76,7 +76,11 @@ class Node:
         logging.debug("New block announced(block: {})".format(data))
         block = Block.from_json(data['block'])
         known_blocks = self._quantcoin.blocks()
-        assert block.previous() == known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
+        print("block.previous() == known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block': {} == {}"
+              .format(block.previous(), known_blocks[-1].digest() if len(known_blocks) > 0 else binascii.b2a_base64(
+            'genesis_block')))
+        assert block.previous() == known_blocks[-1].digest() if len(known_blocks) > 0 else binascii.b2a_base64(
+            'genesis_block')
         assert block.valid()
 
         for transaction in block.transactions():

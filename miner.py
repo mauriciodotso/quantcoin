@@ -1,3 +1,4 @@
+import binascii
 import json
 import logging
 import math
@@ -78,10 +79,12 @@ class Miner(Node):
 
     def mine(self, min_transaction_count=0, min_commission=-1):
         self._mining = True
-        print("Starting mining")
+        # print("Starting mining")
         network = Network(self._quantcoin)
         while self._mining:
-            print("acquiring _transaction_queue_lock")
+            # print("acquiring _transaction_queue_lock")
+            known_blocks = self._quantcoin.blocks()
+            self._last_block = known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
             self._transaction_queue_lock.acquire()
             if min_transaction_count > len(self._transaction_queue):
                 logging.info("Not enough transactions: {} transactions.".format(len(self._transaction_queue)))
@@ -100,11 +103,17 @@ class Miner(Node):
 
             block = Block(author=self._wallet,
                           transactions=self._transaction_queue,
-                          previous_block=self._last_block)
+                          previous_block=binascii.a2b_base64(self._last_block))
             self._transaction_queue_lock.release()
             logging.info("Starting to mine block.")
-            print("Starting to mine block {}.".format(self.last_block_index()))
-            if block.proof_of_work(self._network_difficulty, self, self.last_block_index()):
+            # print("Starting to mine block {}.".format(self.last_block_index()))
+            block_index = self.last_block_index()
+            start_nonce = 0
+            while (block_index == self.last_block_index() and not block.proof_of_work(self._network_difficulty,
+                                                                                      start_nonce, start_nonce + 100)):
+                start_nonce += 101
+
+            if block.nonce() is not None:
                 logging.info("Block found! Block digest: {}; Transactions: {}"
                              .format(block.digest(), len(block.transactions())))
                 print("Block found! Block digest: {}; Transactions: {}"
@@ -125,5 +134,5 @@ class Miner(Node):
     def stop_mining(self):
         self._mining = False
 
-    def running(self):
-        return self._running
+    def mining(self):
+        return self._mining

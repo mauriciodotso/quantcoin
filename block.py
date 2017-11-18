@@ -58,13 +58,15 @@ class Block:
         :returns The block instance represented by the JSON object.
         """
         transactions = []
-        for transaction in data['transactions']:
-            transaction_object = Transaction(transaction['body']['from_wallet'],
-                                             transaction['body']['to_wallets'],
-                                             transaction['signature'],
-                                             transaction['public_key'])
-            transactions.append(transaction_object)
+        if 'transactions' in data.keys():
+            for transaction in data['transactions']:
+                transaction_object = Transaction(transaction['body']['from_wallet'],
+                                                 transaction['body']['to_wallets'],
+                                                 transaction['signature'],
+                                                 transaction['public_key'])
+                transactions.append(transaction_object)
 
+        print("data['digest']: {}".format(binascii.a2b_base64(data['digest'])))
         block = Block(data['author'], transactions,
                       binascii.a2b_base64(data['previous']),
                       data['nonce'],
@@ -124,7 +126,7 @@ class Block:
 
         return queue[0]
 
-    def proof_of_work(self, difficulty, miner, index):
+    def proof_of_work(self, difficulty, start_nonce, end_nonce):
         """
         Does the search for a nonce value that results in a digest value that
         satisfies the blockchain requirements to include this block.
@@ -134,23 +136,21 @@ class Block:
         if self._nonce is None:
             zeros = [0 for _ in range(difficulty)]
             transactions_digest = self.transactions_digest()
-            nonce = 0
+            nonce = start_nonce
             digest = hashlib.sha256(self.author() + self.previous() +
                                     transactions_digest + str(nonce)).digest()
             while digest[:difficulty] != bytearray(zeros):
                 nonce = nonce + 1
-                # Checks if another block was already published in the network
-                if nonce % 100 == 0:
-                    if (miner.last_block_index() > index) or (not miner.running()):
-                        print("last_block_index: {}, index: {}".format(miner.last_block_index(), index))
-                        print("New block announced in the network! Restarting mining.")
-                        return False
+                if nonce > end_nonce:
+                    return False
 
                 digest = hashlib.sha256(self.author() + self.previous() +
                                         transactions_digest + str(nonce)).digest()
 
             self._nonce = nonce
             self._digest = digest
+            return True
+        else:
             return True
 
     def nonce(self):
@@ -175,8 +175,6 @@ class Block:
                                                self.previous() +
                                                transactions_digest +
                                                str(self._nonce)).digest()
-            print("calculated_digest: {}, self._digest: {}".format(binascii.b2a_base64(calculated_digest),
-                                                                   binascii.b2a_base64(self._digest)))
             return calculated_digest == self._digest
         else:
             return False
@@ -186,3 +184,9 @@ class Block:
         Returns the address of the author of this block.
         """
         return self._author.encode('utf-8')
+
+    def __eq__(self, other):
+        if not isinstance(other, Block):
+            return False
+
+        return self.digest() == other.digest()
