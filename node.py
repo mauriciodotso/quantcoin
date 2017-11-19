@@ -3,8 +3,10 @@ import exceptions
 import hashlib
 import json
 import logging
+import math
 import random
 import socket
+import struct
 import thread
 
 from ecdsa import SECP256k1, VerifyingKey
@@ -73,46 +75,46 @@ class Node:
         """
         Verifies and store if valid the new block announced in the network.
         """
-        print(data)
-        logging.debug("New block announced(block: {})".format(data))
-        block = Block.from_json(data['block'])
-        known_blocks = self._quantcoin.blocks()
-        print("block.previous() == known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block': {} == {}"
-              .format(block.previous(), known_blocks[-1].digest() if len(known_blocks) > 0 else binascii.b2a_base64(
-            'genesis_block')))
-        assert block.previous() == known_blocks[-1].digest() if len(known_blocks) > 0 else binascii.b2a_base64(
-            'genesis_block')
-        assert block.valid()
+        try:
+            logging.debug("New block announced(block: {})".format(data))
+            block = Block.from_json(data['block'])
+            known_blocks = self._quantcoin.blocks()
+            network_difficulty = int(2 + math.sqrt(len(known_blocks) / 100))
+            assert block.previous() == known_blocks[-1].digest() if len(known_blocks) > 0 else binascii.b2a_base64(
+                'genesis_block')
+            assert block.valid(network_difficulty)
 
-        for transaction in block.transactions():
-            # If the transaction is the creation transaction we do not validate
-            if transaction.from_wallet() is not None:
-                assert transaction.amount_spent() <= \
-                       self._quantcoin.amount_owned(transaction.from_wallet())
+            for transaction in block.transactions():
+                # If the transaction is the creation transaction we do not validate
+                if transaction.from_wallet() is not None:
+                    assert transaction.amount_spent() <= \
+                           self._quantcoin.amount_owned(transaction.from_wallet())
 
-                # An address cannot send money to itself
-                for to_address, _ in transaction.to_wallets():
-                    assert to_address != transaction.from_wallet()
+                    # An address cannot send money to itself
+                    for to_address, _ in transaction.to_wallets():
+                        assert to_address != transaction.from_wallet()
 
-                transaction_public_key = transaction.public_key()
+                    transaction_public_key = transaction.public_key()
 
-                public_key = VerifyingKey.from_string(
-                    binascii.a2b_base64(transaction_public_key),
-                    curve=SECP256k1)
+                    public_key = VerifyingKey.from_string(
+                        binascii.a2b_base64(transaction_public_key),
+                        curve=SECP256k1)
 
-                # A transaction must be created by the owner of the address
-                address = 'QC' + hashlib.sha1(public_key.to_string()).hexdigest()
-                assert address == transaction.from_wallet()
+                    # A transaction must be created by the owner of the address
+                    address = 'QC' + hashlib.sha1(public_key.to_string()).hexdigest()
+                    assert address == transaction.from_wallet()
 
-                # The transaction integrity must be assured
-                assert public_key.verify(transaction.signature(),
-                                         transaction.prepare_for_signature(),
-                                         hashfunc=hashlib.sha256)
-            else:
-                assert transaction.amount_spent() < 1
+                    # The transaction integrity must be assured
+                    assert public_key.verify(transaction.signature(),
+                                             transaction.prepare_for_signature(),
+                                             hashfunc=hashlib.sha256)
+                else:
+                    assert transaction.amount_spent() < 1
 
-        logging.debug("Block accepted")
-        self._quantcoin.store_block(block)
+            logging.debug("Block accepted")
+            self._quantcoin.store_block(block)
+        except AssertionError:
+            logging.debug("Block rejected: {}".format(data['block']))
 
     def send(self, data, *args, **kwargs):
         """
@@ -127,12 +129,14 @@ class Node:
         function.
         """
         logging.debug("handling connection(address={})".format(address))
-        data = connection.recv(10000)  # FIXME Is this a good size?
+        data_len = struct.unpack("I", connection.recv(4))[0]
+        data = connection.recv(data_len)
         if data is not None:
             try:
                 data = json.loads(data)
                 response = self._cmds[data['cmd']](data, connection)
                 if response is not None:
+                    connection.send(struct.pack("I", len(response)))
                     connection.send(response)
             except exceptions.NameError as e:
                 logging.debug("An exception occurred on connection handle. {}".
@@ -145,12 +149,14 @@ class Node:
         logging.debug("Node running(ip={}, port={})".
                       format(self._ip, self._port))
         s = socket.socket()
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((self._ip, self._port))
         s.listen(5)
         self._running = True
         while self._running:
             connection, address = s.accept()
             thread.start_new_thread(self.handle, (connection, address))
+        s.close()
 
     def stop(self):
         """
@@ -196,11 +202,14 @@ class Network:
                     s.close()
                     continue
 
+                s.send(struct.pack("I", len(cmd_string)))
                 s.send(cmd_string)
                 if receive_function is not None:
-                    data = s.recv(10000)
+                    data_len = struct.unpack("I", s.recv(4))[0]
+                    data = s.recv(data_len)
                     data = json.loads(data)
                     receive_function(data, s)
+                s.close()
         else:
             logging.warn("No nodes registered. Cmd: {}".format(cmd))
 

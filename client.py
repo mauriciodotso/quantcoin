@@ -311,6 +311,8 @@ if __name__ == "__main__":
         client.cmdloop()
         miner.stop_mining()
         miner.stop()
+        miner_thread.join()
+        miner_network_thread.join()
     else:
         node = Node(quantcoin, ip, port)
         node_thread = threading.Thread(target=node.run)
@@ -318,3 +320,4 @@ if __name__ == "__main__":
         client = Client(quantcoin, ip, port)
         client.cmdloop()
         node.stop()
+        node_thread.join()

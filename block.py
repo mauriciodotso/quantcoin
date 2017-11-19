@@ -152,6 +152,22 @@ class Block:
         else:
             return True
 
+    def valid(self, difficulty):
+        """
+        Checks if the block is valid.
+        """
+        if self._nonce is not None:
+            zeros = [0 for _ in range(difficulty)]
+            transactions_digest = self.transactions_digest()
+            calculated_digest = hashlib.sha256(self.author() +
+                                               self.previous() +
+                                               transactions_digest +
+                                               str(self._nonce)).digest()
+            return calculated_digest == self._digest and \
+                calculated_digest[:difficulty] == bytearray(zeros)
+        else:
+            return False
+
     def nonce(self):
         """
         The nonce value of this block.
@@ -163,20 +179,6 @@ class Block:
         The digest value of this block
         """
         return binascii.b2a_base64(self._digest)
-
-    def valid(self):
-        """
-        Checks if the block is valid.
-        """
-        if self._nonce is not None:
-            transactions_digest = self.transactions_digest()
-            calculated_digest = hashlib.sha256(self.author() +
-                                               self.previous() +
-                                               transactions_digest +
-                                               str(self._nonce)).digest()
-            return calculated_digest == self._digest
-        else:
-            return False
 
     def author(self):
         """

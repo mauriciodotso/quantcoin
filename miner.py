@@ -42,19 +42,19 @@ class Miner(Node):
         Node.new_block(self, data, args, kwargs)
         self._last_block_index += 1
 
-        block = Block.from_json(data)
+        block = Block.from_json(data['block'])
+
         self._transaction_queue_lock.acquire()
         # Remove transactions already processed from the queue
         for transaction in block.transactions():
             if transaction in self._transaction_queue:
                 self._transaction_queue.remove(transaction)
-        self._transaction_queue_lock.release
+        self._transaction_queue_lock.release()
 
         known_blocks = self._quantcoin.blocks()
         self._last_block = known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
-        print("last_block: {}".format(self._last_block))
         self._last_block_index = len(known_blocks)
-        self._network_difficulty = int(2 + math.sqrt(len(known_blocks)))
+        self._network_difficulty = int(2 + math.sqrt(len(known_blocks) / 100))
 
     def send(self, data, *args, **kwargs):
         """
@@ -111,21 +111,22 @@ class Miner(Node):
             block_index = self.last_block_index()
             start_nonce = 0
             while (block_index == self.last_block_index() and self.mining() and
-                   not block.proof_of_work(self._network_difficulty,
-                                           start_nonce, start_nonce + 100)):
+                    not block.proof_of_work(self._network_difficulty,
+                                            start_nonce, start_nonce + 100)):
                 start_nonce += 101
 
             if block.nonce() is not None:
                 logging.info("Block found! Block digest: {}; Transactions: {}"
                              .format(block.digest(), len(block.transactions())))
-                print("Block found! Block digest: {}; Transactions: {}"
-                      .format(block.digest(), len(block.transactions())))
+                print("Block found! Block digest: {}; Transactions: {}; difficulty: {}"
+                      .format(block.digest(), len(block.transactions()), self._network_difficulty))
 
                 self._transaction_queue_lock.acquire()
                 self._transaction_queue = []
                 self._transaction_queue_lock.release()
 
                 network.new_block(block)
+        print("Terminating miner...")
 
     def last_block_index(self):
         """
