@@ -60,10 +60,7 @@ class Miner(Node):
         """
         Register transaction on queue for mining
 
-        :param data:
-        :param args:
-        :param kwargs:
-        :return:
+        :param data: The message data for transaction
         """
         Node.send(self, data, args, kwargs)
         logging.debug("Transaction received. {}".format(data['transaction']))
@@ -79,17 +76,21 @@ class Miner(Node):
             self._transaction_queue_lock.release()
 
     def mine(self, min_transaction_count=0, min_commission=-1):
+        """
+        Does the mining process based on a mining queue.
+
+        :param min_transaction_count: The minimum number of transactions to be added to the block
+        :param min_commission: The minimum commission to start mining
+        """
         self._mining = True
-        # print("Starting mining")
+        print("Starting miner")
         network = Network(self._quantcoin)
         while self._mining:
-            # print("acquiring _transaction_queue_lock")
             known_blocks = self._quantcoin.blocks()
             self._last_block = known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
             self._transaction_queue_lock.acquire()
             if min_transaction_count > len(self._transaction_queue):
                 logging.info("Not enough transactions: {} transactions.".format(len(self._transaction_queue)))
-                print("Not enough transactions: {} transactions.".format(len(self._transaction_queue)))
                 self._transaction_queue_lock.release()
                 time.sleep(5)
                 continue
@@ -97,7 +98,6 @@ class Miner(Node):
                 commission = sum(t.commission() for t in self._transaction_queue)
                 if commission < min_commission:
                     logging.info("Target commission not reached: {} commission reached.".format(commission))
-                    print("Target commission not reached: {} commission reached.".format(commission))
                     self._transaction_queue_lock.release()
                     time.sleep(5)
                     continue
@@ -106,8 +106,8 @@ class Miner(Node):
                           transactions=self._transaction_queue,
                           previous_block=binascii.a2b_base64(self._last_block))
             self._transaction_queue_lock.release()
+
             logging.info("Starting to mine block.")
-            # print("Starting to mine block {}.".format(self.last_block_index()))
             block_index = self.last_block_index()
             start_nonce = 0
             while (block_index == self.last_block_index() and self.mining() and
@@ -116,16 +116,16 @@ class Miner(Node):
                 start_nonce += 101
 
             if block.nonce() is not None:
-                logging.info("Block found! Block digest: {}; Transactions: {}"
-                             .format(block.digest(), len(block.transactions())))
-                print("Block found! Block digest: {}; Transactions: {}; difficulty: {}"
-                      .format(block.digest(), len(block.transactions()), self._network_difficulty))
-
                 self._transaction_queue_lock.acquire()
                 self._transaction_queue = []
                 self._transaction_queue_lock.release()
 
                 network.new_block(block)
+                logging.info("Block found! Block digest: {}; Transactions: {}"
+                             .format(block.digest(), len(block.transactions())))
+                print("Block found! Block digest: {}; Transactions: {}; difficulty: {}"
+                      .format(block.digest(), len(block.transactions()), self._network_difficulty))
+
         print("Terminating miner...")
 
     def last_block_index(self):
@@ -135,7 +135,14 @@ class Miner(Node):
         return self._last_block_index
 
     def stop_mining(self):
+        """
+        Turns off mining
+        """
         self._mining = False
 
     def mining(self):
+        """
+        Informs if mining is active
+        :return: True if mining
+        """
         return self._mining

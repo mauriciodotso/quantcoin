@@ -130,7 +130,7 @@ class Block:
         Does the search for a nonce value that results in a digest value that
         satisfies the blockchain requirements to include this block.
 
-            difficulty: the difficulty required by the blockchain
+        :param difficulty: the difficulty required by the blockchain
         """
         if self._nonce is None:
             zeros = [0 for _ in range(difficulty)]
