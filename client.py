@@ -202,10 +202,8 @@ class Client(Cmd):
 
         transaction = Transaction(my_address, to_wallets)
 
-        '''
         assert transaction.amount_spent() <= \
             self._quantcoin.amount_owned(my_address)
-        '''
 
         using_wallet = None
         for wallet in self._quantcoin.wallets():
