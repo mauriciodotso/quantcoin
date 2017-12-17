@@ -73,7 +73,7 @@ class Node:
 
     def new_block(self, data, *args, **kwargs):
         """
-        Verifies and store if valid the new block announced in the network.
+        Verifies and store the new block announced in the network if valid.
         """
         try:
             logging.debug("New block announced(block: {})".format(data))
