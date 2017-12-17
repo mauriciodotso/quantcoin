@@ -1,7 +1,6 @@
 import binascii
 import json
 import logging
-import math
 import threading
 import time
 

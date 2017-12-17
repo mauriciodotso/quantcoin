@@ -3,7 +3,6 @@ import exceptions
 import hashlib
 import json
 import logging
-import math
 import random
 import socket
 import struct
