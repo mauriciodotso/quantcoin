@@ -58,7 +58,6 @@ class Miner(Node):
         :param data: The message data for transaction
         """
         Node.send(self, data, args, kwargs)
-        logging.debug("Transaction received. {}".format(data['transaction']))
         transaction_data = json.loads(data['transaction'])
         transaction = Transaction(from_wallet=transaction_data['body']['from'],
                                   to_wallets=transaction_data['body']['to'],
@@ -66,6 +65,7 @@ class Miner(Node):
                                   public_key=transaction_data['public_key'])
 
         if transaction.verify():
+            logging.debug("Transaction being included in the mining queue. {}".format(data['transaction']))
             self._transaction_queue_lock.acquire()
             self._transaction_queue.append(transaction)
             self._transaction_queue_lock.release()
