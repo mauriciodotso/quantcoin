@@ -40,6 +40,8 @@ class Node:
         }
         self._running = False
 
+        self._network = Network(quantcoin)
+
     def get_nodes(self, *args, **kwargs):
         """
         Responds to the command with all peers known by this node.
@@ -117,6 +119,7 @@ class Node:
 
             logging.debug("Block accepted")
             self._quantcoin.store_block(block)
+            self._network.forward(data)
         except AssertionError:
             logging.debug("Block rejected: {}".format(data['block']))
 
@@ -125,7 +128,7 @@ class Node:
         Ignores the transaction announcement in the network.
         """
         logging.debug("Transaction received({})".format(data['transaction']))
-        pass
+        self._network.forward(data)
 
     def handle(self, connection, address):
         """
@@ -183,6 +186,12 @@ class Network:
             raise Exception("A Network must have a QuanCoin instance to work.")
         self._quantcoin = quantcoin
 
+    def forward(self, cmd):
+        """
+        Pass the command along
+        """
+        self._send_cmd(cmd)
+
     def _send_cmd(self, cmd, receive_function=None):
         """
         Sends the command to all peers known in the network. If the peer
@@ -197,7 +206,7 @@ class Network:
         cmd_string = json.dumps(cmd)
         nodes = self._quantcoin.all_nodes()
         if nodes is not None:
-            nodes = random.sample(nodes, len(nodes))
+            nodes = random.sample(nodes, 100)
             for node in nodes:
                 s = socket.socket()
                 try:
