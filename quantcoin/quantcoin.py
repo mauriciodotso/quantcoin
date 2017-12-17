@@ -222,6 +222,10 @@ class QuantCoin:
         """
         amount_owned = 0.0
         for block in self.blocks():
+            # if this wallet is the author of the block, all commissions should be his
+            if block.author() == wallet:
+                amount_owned += block.commission()
+
             for transaction in block.transactions():
                 if wallet == transaction.from_wallet():
                     amount_owned = amount_owned - transaction.amount_spent()

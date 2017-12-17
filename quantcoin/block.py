@@ -103,6 +103,16 @@ class Block:
         """
         return binascii.b2a_base64(self._previous_block)
 
+    def commission(self):
+        """
+        :return: The sum of all commissions earned in this block
+        """
+        commission = 0.0
+        for transaction in self.transactions():
+            commission += transaction.commission()
+
+        return commission
+
     def transactions_digest(self):
         """
         Obtains the digest value of the tree root of the transactions digests
