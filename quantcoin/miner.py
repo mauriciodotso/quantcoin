@@ -34,13 +34,9 @@ class Miner(Node):
         """
         Removes transactions already mined from the queue and changes previous block.
 
-        :param data:
-        :param args:
-        :param kwargs:
-        :return:
+        :param data: The new block as a dictionary
         """
         Node.new_block(self, data, args, kwargs)
-        self._last_block_index += 1
 
         block = Block.from_json(data['block'])
 
@@ -87,7 +83,8 @@ class Miner(Node):
         network = Network(self._quantcoin)
         while self._mining:
             known_blocks = self._quantcoin.blocks()
-            self._last_block = known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
+            number_of_blocks = len(known_blocks)
+            self._last_block = known_blocks[-1].digest() if number_of_blocks > 0 else 'genesis_block'
             self._transaction_queue_lock.acquire()
             if min_transaction_count > len(self._transaction_queue):
                 logging.info("Not enough transactions: {} transactions.".format(len(self._transaction_queue)))

@@ -240,6 +240,8 @@ def print_help():
           "storage")
     print("\t\t-x(--private_storage) <value>\tDefines the path to the " +
           "private storage")
+    print("\t\t-m <wallet> Starts the client in the miner mode. The wallet"
+          "\t\twill be used as the author of the blocks.")
 
 
 if __name__ == "__main__":
