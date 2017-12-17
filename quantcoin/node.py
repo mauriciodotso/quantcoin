@@ -80,7 +80,7 @@ class Node:
             block = Block.from_json(data['block'])
             known_blocks = self._quantcoin.blocks()
             number_of_blocks = len(known_blocks)
-            network_difficulty = int(2 + math.sqrt(number_of_blocks / 100000))
+            network_difficulty = int(52 - (50 / 1 + number_of_blocks // 100000))
             assert block.previous() == known_blocks[-1].digest() if number_of_blocks > 0 else binascii.b2a_base64(
                 'genesis_block')
             assert block.valid(network_difficulty)

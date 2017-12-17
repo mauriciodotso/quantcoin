@@ -26,9 +26,9 @@ class Miner(Node):
 
         known_blocks = quantcoin.blocks()
         self._last_block = known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
-        self._last_block_index = len(known_blocks)
+        self._last_block_index = number_of_blocks = len(known_blocks)
         self._mining = False
-        self._network_difficulty = int(2 + math.sqrt(len(known_blocks)))
+        self._network_difficulty = int(52 - (50 / 1 + number_of_blocks // 100000))
 
     def new_block(self, data, *args, **kwargs):
         """
@@ -49,8 +49,8 @@ class Miner(Node):
 
         known_blocks = self._quantcoin.blocks()
         self._last_block = known_blocks[-1].digest() if len(known_blocks) > 0 else 'genesis_block'
-        self._last_block_index = len(known_blocks)
-        self._network_difficulty = int(2 + math.sqrt(len(known_blocks) / 100))
+        self._last_block_index = number_of_blocks = len(known_blocks)
+        self._network_difficulty = int(52 - (50 / 1 + number_of_blocks // 100000))
 
     def send(self, data, *args, **kwargs):
         """
