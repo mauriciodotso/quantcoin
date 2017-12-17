@@ -105,6 +105,8 @@ class Miner(Node):
             block = Block(author=self._wallet,
                           transactions=self._transaction_queue,
                           previous_block=binascii.a2b_base64(self._last_block))
+
+            self._transaction_queue = []
             self._transaction_queue_lock.release()
 
             logging.info("Starting to mine block.")
@@ -116,10 +118,6 @@ class Miner(Node):
                 start_nonce += 101
 
             if block.nonce() is not None:
-                self._transaction_queue_lock.acquire()
-                self._transaction_queue = []
-                self._transaction_queue_lock.release()
-
                 network.new_block(block)
                 logging.info("Block found! Block digest: {}; Transactions: {}"
                              .format(block.digest(), len(block.transactions())))
