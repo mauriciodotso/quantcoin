@@ -79,11 +79,13 @@ class Node:
             logging.debug("New block announced(block: {})".format(data))
             block = Block.from_json(data['block'])
             known_blocks = self._quantcoin.blocks()
-            network_difficulty = int(2 + math.sqrt(len(known_blocks) / 100))
-            assert block.previous() == known_blocks[-1].digest() if len(known_blocks) > 0 else binascii.b2a_base64(
+            number_of_blocks = len(known_blocks)
+            network_difficulty = int(2 + math.sqrt(number_of_blocks / 100000))
+            assert block.previous() == known_blocks[-1].digest() if number_of_blocks > 0 else binascii.b2a_base64(
                 'genesis_block')
             assert block.valid(network_difficulty)
 
+            has_coin_creation_transaction = False
             for transaction in block.transactions():
                 # If the transaction is the creation transaction we do not validate
                 if transaction.from_wallet() is not None:
@@ -109,7 +111,10 @@ class Node:
                                              transaction.prepare_for_signature(),
                                              hashfunc=hashlib.sha256)
                 else:
-                    assert transaction.amount_spent() < 1
+                    assert not has_coin_creation_transaction
+                    assert transaction.amount_spent() <= 100 / (1 + (number_of_blocks // 100000))
+                    # Only one coin creation transaction allowed
+                    has_coin_creation_transaction = True
 
             logging.debug("Block accepted")
             self._quantcoin.store_block(block)
