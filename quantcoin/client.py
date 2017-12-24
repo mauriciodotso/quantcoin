@@ -30,9 +30,9 @@ class Client(Cmd):
         in the QuantCoin network, so they should be visible in the external
         network.
 
-            quantcoin: The QuanCoin storages facade.
-            ip: This client public IP address.
-            port: The port that this client will operate.
+        :param quantcoin: The QuanCoin storages facade.
+        :param ip: This client public IP address.
+        :param port: The port that this client will operate.
         """
         Cmd.__init__(self)
         self._node_data_lock = threading.Lock()
@@ -103,8 +103,8 @@ class Client(Cmd):
         Executes indefinitely the syncing of the public storage of the
         QuantCoin network.
 
-            ip: This client public IP address.
-            port: The port that this client will operate.
+        :param ip: This client public IP address.
+        :param port: The port that this client will operate.
         """
         while True:
             self._network.register(ip, port)
@@ -220,6 +220,9 @@ class Client(Cmd):
         self._network.send(transaction)
 
     def do_owned(self, line):
+        """
+        Shows the amount owned by the informed address
+        """
         address = line.strip()
         print(self._quantcoin.amount_owned(address))
 

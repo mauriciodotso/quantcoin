@@ -29,12 +29,12 @@ class Block:
         digest value for the purposes of mining. But for persisting the block
         both these values are mandated.
 
-            author: the address of the wallet of the miner
-            transactions: a set of transactions included in this block
-            previous_block: a digest that references the previous block
-            nonce: the nonce value used to achieve the requested zeroes to
+        :param author: the address of the wallet of the miner
+        :param transactions: a set of transactions included in this block
+        :param previous_block: a digest that references the previous block
+        :param nonce: the nonce value used to achieve the requested zeroes to
                 include this block in the chain
-            digest: the digest value of this block
+        :param digest: the digest value of this block
         """
         if author is None:
             raise Exception("A block must have an author.")
@@ -141,6 +141,8 @@ class Block:
         satisfies the blockchain requirements to include this block.
 
         :param difficulty: the difficulty required by the blockchain
+        :param start_nonce: the nonce to begin the search
+        :param end_nonce: the nonce to end the search
         """
         if self._nonce is None:
             zeros = [0 for _ in range(difficulty)]

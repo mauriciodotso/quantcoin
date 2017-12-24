@@ -101,9 +101,8 @@ class QuantCoin:
         Encrypts the private store with AES-256 using the password for the
         key generation.
 
-            database: the path to the file where the private store will be
-                saved.
-            password: the password used to generate the AES-256 key.
+        :param database: the path to the file where the private store will be saved.
+        :param password: the password used to generate the AES-256 key.
         """
         logging.debug("Saving to private database")
         with open(database, 'wb') as fp:

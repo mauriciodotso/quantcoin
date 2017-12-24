@@ -108,6 +108,7 @@ class Transaction(object):
         """
         Does the transaction signature
         :param private_key_encoded: The private key encoded in Base64
+        :param public_key_encoded: The public key encoded in Base64
         """
         to_sign = self.prepare_for_signature()
         priv_key = SigningKey.from_string(binascii.a2b_base64(private_key_encoded),
