@@ -7,4 +7,5 @@ COPY . /usr/local/quantcoin
 
 EXPOSE 65234
 RUN pip install -r /usr/local/quantcoin/requirements.txt
+VOLUME /root
 CMD ["python", "/usr/local/quantcoin/quantcoin/client.py", "-p", "65234", "-s", "/root/wallet.qc", "-x", "/root/wallet.qc-priv"]
