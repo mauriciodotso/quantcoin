@@ -245,6 +245,8 @@ def print_help():
           "private storage")
     print("\t\t-m <wallet> Starts the client in the miner mode. The wallet"
           "\t\twill be used as the author of the blocks.")
+    print("\t\t-P <password> The password that should be used to open the" +
+          " private database.")
 
 
 if __name__ == "__main__":
