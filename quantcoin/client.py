@@ -251,9 +251,11 @@ if __name__ == "__main__":
     try:
         application_args = sys.argv[1:]
         opts, _ = getopt.getopt(application_args,
-                                "hi:p:ds:x:m:", ["help", "ip:", "port:",
-                                                 "debug", "storage:",
-                                                 "private_storage:", "mine:"])
+                                "hi:p:ds:x:m:P:",
+                                ["help", "ip:", "port:",
+                                 "debug", "storage:",
+                                 "private_storage:", "mine:",
+                                 "password:"])
     except getopt.GetoptError:
         print_help()
         exit()
@@ -265,6 +267,7 @@ if __name__ == "__main__":
     private_database = 'default.qc-priv'
     miner = False
     miner_wallet = ''
+    password = None
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print_help()
@@ -282,6 +285,9 @@ if __name__ == "__main__":
         elif opt in ('-m', '--mine'):
             miner = True
             miner_wallet = arg
+        elif opt in ('-P', '--password'):
+            password = arg
+
     if debug:
         import logging
         import sys
@@ -300,7 +306,8 @@ if __name__ == "__main__":
     quantcoin = QuantCoin()
     quantcoin.load(database)
     quantcoin.database = database
-    password = getpass.getpass("Password for private storage: ")
+    if password is None:
+        password = getpass.getpass("Password for private storage: ")
     quantcoin.load_private(private_database, password)
     quantcoin.private_database = private_database
     quantcoin.password = password
